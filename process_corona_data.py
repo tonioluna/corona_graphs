@@ -8,7 +8,7 @@ import traceback
 import configparser
 #import re
 import codecs
-#import shutil
+import shutil
 #import math
 #import random
 import csv
@@ -51,7 +51,7 @@ _timeline_needs_population = (TIMELINE_FIRST_100_CASES,
                               TIMELINE_FIRST_CASE_PER_1M,
                               )
 
-_integer_timelines = (TIMELINE_FIRST_100_CASES,
+_float_timelines = (TIMELINE_FIRST_100_CASES,
                       TIMELINE_FIRST_CASE_PER_10K,
                       TIMELINE_FIRST_CASE_PER_10M,
                       TIMELINE_FIRST_CASE_PER_1M)
@@ -63,17 +63,27 @@ DATA_TOTAL_CASES_PER_10M = "total_cases_per_10m"
 DATA_TOTAL_CASES = "total_cases"
 DATA_NEW_CASES = "new_cases"
 DATA_NEW_CASES_PER_1M = "new_cases_per_1m"
+DATA_TOTAL_DEATHS_PER_1M = "total_deaths_per_1m"
+DATA_TOTAL_DEATHS = "total_deaths"
+DATA_NEW_DEATHS_PER_1M = "new_deaths_per_1m"
+DATA_NEW_DEATHS = "new_deaths"
 _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_CASES_PER_10K,
                DATA_TOTAL_CASES_PER_10M,
                DATA_TOTAL_CASES_PER_1M,
                DATA_NEW_CASES,
-               DATA_NEW_CASES_PER_1M,               
+               DATA_NEW_CASES_PER_1M,   
+               DATA_TOTAL_DEATHS,
+               DATA_TOTAL_DEATHS_PER_1M,
+               DATA_NEW_DEATHS,
+               DATA_NEW_DEATHS_PER_1M,            
                )
 _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M, 
                                DATA_TOTAL_CASES_PER_10K, 
                                DATA_TOTAL_CASES_PER_10M,
                                DATA_NEW_CASES_PER_1M,
+                               DATA_TOTAL_DEATHS_PER_1M,
+                               DATA_NEW_DEATHS_PER_1M,
                                )
 
 FILTER_NONE = "none"
@@ -127,6 +137,8 @@ _corona_csv_required_cols = (CORONA_CSV_HDR_COUNTRY,
                              CORONA_CSV_HDR_TOTAL_DEATHS)
 
 CoronaDayEntry = collections.namedtuple("CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+    
+DATA_MARGIN = 0.04
     
 _plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
                      (1, 1,  5, 1),
@@ -221,8 +233,8 @@ class Report:
             assert len(rng) == 2, "plot_x_range must contain 2 items, not %i"%(len(rng))
             if self.timeline in _date_timelines:
                 self.plot_x_range = [(time.mktime(time.strptime(d, "%y/%m/%d")) if d != "" else None) for d in rng]
-            elif self.timeline in _integer_timelines:
-                self.plot_x_range = [(int(i) if i != "" else None) for i in rng]
+            elif self.timeline in _float_timelines:
+                self.plot_x_range = [(float(i) if i != "" else None) for i in rng]
             else:
                 raise Exception("Don't know what type of range will be used on timeline of type %s"%(self.timeline))
         else:
@@ -230,7 +242,7 @@ class Report:
             
         if config_reader.has_option(section, "plot_y_range"):
             rng = [s.strip() for s in config_reader.get(section, "plot_y_range").strip().split(",")]
-            self.plot_y_range = [(int(i) if i != "" else None) for i in rng]
+            self.plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.plot_y_range = None
         
@@ -403,6 +415,7 @@ class CoronaBaseData:
     
     def export(self,
                report):
+        log.info("-"*100)
         log.info("Runnning report %s"%(report.ID, ))
         log.debug("    Report file: %s"%(report.filename, ))
         log.debug("   Save formats: %s"%(repr(report.formats), ))
@@ -430,8 +443,6 @@ class CoronaBaseData:
             
             date_domain, country_timelines = self._get_country_timelines(report.timeline, countries)
             
-            data_max = None
-            data_min = None
             report_data = []
             for adj_date in date_domain:
                 row = {}
@@ -442,6 +453,10 @@ class CoronaBaseData:
                         if actual_date in self.data[country]:
                             if report.data_type == DATA_TOTAL_CASES:
                                 data = self.data[country][actual_date].total_cases
+                            elif report.data_type == DATA_TOTAL_DEATHS:
+                                data = self.data[country][actual_date].total_deaths
+                            elif report.data_type == DATA_NEW_DEATHS:
+                                data = self.data[country][actual_date].new_deaths
                             elif report.data_type == DATA_TOTAL_CASES_PER_1M:
                                 data = self.data[country][actual_date].total_cases / (self.population[country] / 1000000)
                             elif report.data_type == DATA_TOTAL_CASES_PER_10M:
@@ -452,11 +467,15 @@ class CoronaBaseData:
                                 data = self.data[country][actual_date].new_cases
                             elif report.data_type == DATA_NEW_CASES_PER_1M:
                                 data = self.data[country][actual_date].new_cases / (self.population[country] / 1000000)
+                            elif report.data_type == DATA_TOTAL_DEATHS_PER_1M:
+                                data = self.data[country][actual_date].total_deaths / (self.population[country] / 1000000)
+                            elif report.data_type == DATA_NEW_DEATHS_PER_1M:
+                                data = self.data[country][actual_date].new_deaths / (self.population[country] / 1000000)
                             else:
                                 raise Exception("Unsupported data type: %s"%(report.data_type))
                     row[country] = data
-                    data_max = data_max if data == None else (data if data_max == None else max(data, data_max))
-                    data_min = data_min if data == None else (data if data_min == None else max(data, data_min))
+                    #data_max = data_max if data == None else (data if data_max == None else max(data, data_max))
+                    #data_min = data_min if data == None else (data if data_min == None else min(data, data_min))
                 report_data.append(row)
             
             # Apply filters
@@ -465,6 +484,14 @@ class CoronaBaseData:
                                                           report.filter_value,
                                                           countries)
         
+            # Calculate max and min only after the filter is applied
+            data_max = None
+            data_min = None
+            for row in report_data:
+                for country in selected_countries:
+                    data_max = data_max if (row[country] == None) else (row[country] if data_max == None else max(row[country], data_max))
+                    data_min = data_min if (row[country] == None) else (row[country] if data_min == None else min(row[country], data_min))
+            
             # Sort data
             #miau
             
@@ -476,24 +503,42 @@ class CoronaBaseData:
                 if y_range != None:
                     nyr = []
                     nyr.extend(y_range)
-                    if nyr[0] == None: nyr[0] = data_min
-                    if nyr[1] == None: nyr[1] = data_max
-                    y_range = nyr 
+                    adjust_min = False
+                    adjust_max = False
+                    if nyr[0] == None: 
+                        nyr[0] = data_min
+                        adjust_min = True
+                    if nyr[1] == None: 
+                        nyr[1] = data_max
+                        adjust_max = True
+                    y_range = self._set_range_margin(nyr, adjust_min, adjust_max)
                 x_range = report.plot_x_range
                 if x_range != None:
                     nxr = []
                     nxr.extend(x_range)
-                    if nxr[0] == None: nxr[0] = min(date_domain)
-                    if nxr[1] == None: nxr[1] = max(date_domain) 
-                    x_range = nxr
-                #print(repr(y_range))
-                #print(repr(x_range))
+                    adjust_min = False
+                    adjust_max = False
+                    if nxr[0] == None: 
+                        nxr[0] = min(date_domain)
+                        adjust_min = True
+                    if nxr[1] == None: 
+                        nxr[1] = max(date_domain)
+                        adjust_max = True
+                    x_range = self._set_range_margin(nxr, adjust_min, adjust_max)
+                
                 self.write_plot(report, date_domain, report_data, selected_countries, x_range, y_range)
             
         except Exception as ex:
             log.error("Failed to export data to report %s: %s"%(report.filename, ex))
             log.debug(traceback.format_exc())
-        
+    
+    def _set_range_margin(self, rng, adjust_min, adjust_max):
+        log.debug("Pre-scale:  %s"%(repr(rng)))
+        delta = (rng[1] - rng[0]) * DATA_MARGIN
+        result = ((rng[0] - delta) if adjust_min else rng[0],
+                  (rng[1] + delta) if adjust_max else rng[1])
+        log.debug("Post-scale: %s"%(repr(result)))
+        return result
         
     def write_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None):
         filename = report.filename
@@ -509,7 +554,9 @@ class CoronaBaseData:
             y = []
             for date_index, adj_date in enumerate(date_domain):
                 data = report_data[date_index][country]
-                if data == None: continue
+                if data == None or \
+                    (data == 0): continue
+                    #(report.plot_y_scale == PLOT_SCALE_LOG and data == 0): continue
                 #fmt_date = self.format_adjusted_date(adj_date, timeline)
                 if timeline in _date_timelines:
                     #x.append(datetime.datetime.strptime(adj_date,"%m/%d/%Y").date())
@@ -532,7 +579,11 @@ class CoronaBaseData:
         #plt.show()
         plt.yscale(report.plot_y_scale)
         
-        ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE)
+        if timeline in _date_timelines:
+            plt.xticks(rotation = 35)
+            ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 2)
+        else:
+            ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE)
         
         if title != None:
             plt.suptitle(title, fontsize = 9, fontweight='bold')
@@ -562,6 +613,14 @@ class CoronaBaseData:
             plt.ylabel("New cases per day", fontsize=PLOT_AXIS_FONT_SIZE)
         elif data_type == DATA_NEW_CASES_PER_1M:
             plt.ylabel("New cases per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+        elif data_type == DATA_TOTAL_DEATHS:
+            plt.ylabel("Total deaths", fontsize=PLOT_AXIS_FONT_SIZE)
+        elif data_type == DATA_TOTAL_DEATHS_PER_1M:
+            plt.ylabel("Total deaths / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+        elif data_type == DATA_NEW_DEATHS:
+            plt.ylabel("New deaths per day", fontsize=PLOT_AXIS_FONT_SIZE)
+        elif data_type == DATA_NEW_DEATHS_PER_1M:
+            plt.ylabel("New deaths per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
         else:
             log.warning("No label defined for data type %s"%(data_type, ))
     
@@ -570,13 +629,21 @@ class CoronaBaseData:
                 ax.set_xlim([datetime.datetime.fromtimestamp(d) for d in x_range])
             else:
                 plt.xlim(x_range)
+        else:
+            log.debug("Setting X axis multiplier")
+            ax.set_xmargin(DATA_MARGIN)
         if y_range != None:
             plt.ylim(y_range)
-        
+        else:
+            ax.set_ymargin(DATA_MARGIN)
+            log.debug("Setting Y axis multiplier")
         if timeline in _date_timelines:
             #ax.format_xdata = mdates.DateFormatter('%Y-%m-%d')
             formatter = mdates.DateFormatter("%y/%m/%d")
             ax.xaxis.set_major_formatter(formatter)
+        
+        plt.grid(True, color="#E0F0FF")
+        #plt.tight_layout()
         
         plt.title(time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize = 8)
         
@@ -742,7 +809,8 @@ def main():
     init_logger()
     
     try:
-        config = Parameters(filename = CONFIG_FILE)
+        config_file = os.path.abspath(CONFIG_FILE)
+        config = Parameters(filename = config_file)
         
         population_data = read_population_data()
         
@@ -756,10 +824,20 @@ def main():
         else:
             dir = config.report_dir
         if dir != None:
+            dir = os.path.abspath(dir)
             assert not os.path.exists(dir), "Report directory already exists: %s"%(dir)
             os.mkdir(dir)
+            # Wait for f-ing windows to create the directory
+            x = 10
+            while x > 0:
+                if os.path.exists(dir):
+                    break
+                time.sleep(0.05)
+            assert os.path.exists(dir), "Windows at it again, directory was not created: %s"%(dir)
+                
             os.chdir(dir)
         
+        shutil.copy(config_file, os.path.join(dir, os.path.basename(config_file)))
         
         for report in config.reports:
             corona_data.export(report)

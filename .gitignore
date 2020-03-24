@@ -3,10 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-report_*
+report_2*
 *.log
-full_data*.csv
-population*.csv
 
 # C extensions
 *.so
