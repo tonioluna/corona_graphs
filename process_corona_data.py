@@ -16,6 +16,7 @@ import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 
 if __name__ == "__main__":
     I_AM_SCRIPT = True
@@ -138,7 +139,10 @@ _corona_csv_required_cols = (CORONA_CSV_HDR_COUNTRY,
 
 CoronaDayEntry = collections.namedtuple("CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
     
-DATA_MARGIN = 0.04
+PLOT_DATA_MARGIN = 0.04
+PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
+PLOT_EXTERNAL_BG_COLOR = "#384048"
+PLOT_GRID_COLOR = "#E0F0FF"
     
 _plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
                      (1, 1,  5, 1),
@@ -549,7 +553,7 @@ class CoronaBaseData:
     
     def _set_range_margin(self, rng, adjust_min, adjust_max):
         log.debug("Pre-scale:  %s"%(repr(rng)))
-        delta = (rng[1] - rng[0]) * DATA_MARGIN
+        delta = (rng[1] - rng[0]) * PLOT_DATA_MARGIN
         result = ((rng[0] - delta) if adjust_min else rng[0],
                   (rng[1] + delta) if adjust_max else rng[1])
         log.debug("Post-scale: %s"%(repr(result)))
@@ -591,51 +595,57 @@ class CoronaBaseData:
                 raise Exception("Unsupported plot style: %s"%(report.plot_style, )) 
                 
         ax.legend(fontsize=PLOT_AXIS_FONT_SIZE)
+        
         #plt.show()
         plt.yscale(report.plot_y_scale)
         
+        ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 2, colors=PLOT_EXTERNAL_FONT_COLOR, which = 'both')
         if timeline in _date_timelines:
             plt.xticks(rotation = 35)
-            ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 2)
-        else:
-            ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE)
+            ax.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 3, axis="x")
+            
         
+        # Title
         if title != None:
-            plt.suptitle(title, fontsize = 9, fontweight='bold')
+            txt = plt.suptitle(title, fontsize = 8, fontweight='bold')
+            plt.setp(txt, color=PLOT_EXTERNAL_FONT_COLOR)
+        # Sub-title
+        txt = plt.title(time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize = 8)
+        plt.setp(txt, color=PLOT_EXTERNAL_FONT_COLOR)
         
         if timeline == TIMELINE_ORIGINAL:
-            plt.xlabel("Date", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.xlabel("Date", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif timeline == TIMELINE_FIRST_100_CASES:
-            plt.xlabel("Days (0 -> First 100 total cases)", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.xlabel("Days (0 -> First 100 total cases)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif timeline == TIMELINE_FIRST_CASE_PER_10K:
-            plt.xlabel("Days (0 -> First case per 10K habs)", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.xlabel("Days (0 -> First case per 10K habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif timeline == TIMELINE_FIRST_CASE_PER_10M:
-            plt.xlabel("Days (0 -> First case per 10M habs)", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.xlabel("Days (0 -> First case per 10M habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif timeline == TIMELINE_FIRST_CASE_PER_1M:
-            plt.xlabel("Days (0 -> First case per 1M habs)", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.xlabel("Days (0 -> First case per 1M habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         else:
             log.warning("No label defined for timeline type %s"%(timeline, ))
 
         if data_type == DATA_TOTAL_CASES:
-            plt.ylabel("Total cases", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total cases", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_TOTAL_CASES_PER_10K:
-            plt.ylabel("Total cases / 10K Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total cases / 10K Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_TOTAL_CASES_PER_1M:
-            plt.ylabel("Total cases / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total cases / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_TOTAL_CASES_PER_10M:
-            plt.ylabel("Total cases / 10M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total cases / 10M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_NEW_CASES:
-            plt.ylabel("New cases per day", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("New cases per day", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_NEW_CASES_PER_1M:
-            plt.ylabel("New cases per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("New cases per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_TOTAL_DEATHS:
-            plt.ylabel("Total deaths", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total deaths", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_TOTAL_DEATHS_PER_1M:
-            plt.ylabel("Total deaths / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("Total deaths / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_NEW_DEATHS:
-            plt.ylabel("New deaths per day", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("New deaths per day", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         elif data_type == DATA_NEW_DEATHS_PER_1M:
-            plt.ylabel("New deaths per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE)
+            plt.ylabel("New deaths per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         else:
             log.warning("No label defined for data type %s"%(data_type, ))
     
@@ -646,24 +656,45 @@ class CoronaBaseData:
                 plt.xlim(x_range)
         else:
             log.debug("Setting X axis multiplier")
-            ax.set_xmargin(DATA_MARGIN)
+            ax.set_xmargin(PLOT_DATA_MARGIN)
         if y_range != None:
             plt.ylim(y_range)
         else:
-            ax.set_ymargin(DATA_MARGIN)
+            ax.set_ymargin(PLOT_DATA_MARGIN)
             log.debug("Setting Y axis multiplier")
         if timeline in _date_timelines:
             #ax.format_xdata = mdates.DateFormatter('%Y-%m-%d')
             formatter = mdates.DateFormatter("%y/%m/%d")
             ax.xaxis.set_major_formatter(formatter)
         
-        plt.grid(True, color="#E0F0FF")
+        plt.grid(True, color=PLOT_GRID_COLOR)
+        fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
         #plt.tight_layout()
         
-        plt.title(time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize = 8)
+        if True or report.plot_y_scale == PLOT_SCALE_LOG:
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_log_scale))
+        
+        plt.gcf().text(0.01, 0.01, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
-        plt.savefig(fname = filename + ".png", dpi=600)
+        plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        
+    def format_log_scale(self, x, pos=None):
+        def round_to_int(n):
+            if n%1 == 0:
+                return int(n)
+            return n
+        
+        if x >= 1000000: 
+            r = "%sM"%(round_to_int(x/1000000))
+        elif x >= 1000: 
+            r = "%sK"%(round_to_int(x/1000))
+        elif x >= 1: 
+            r = "%s"%(round_to_int(x))
+        else:
+            r = "%s"%x 
+        
+        return r
         
     def write_csv(self, filename, timeline, date_domain, report_data, selected_countries):
         log.info("Writting CSV report %s" % (filename, ))
