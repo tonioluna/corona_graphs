@@ -289,9 +289,21 @@ class Parameters:
                 self.reports.append(Report(parser, section))
             elif section == "general":
                 self.report_dir = parser.get("general", 'report_dir').strip()
+            elif section == "population_name_translation":
+                self._read_pop_name_xtion(parser, section)
             else:
                 raise Exception("Don't know how to read section %s"%(repr(section),))
         
+    def _read_pop_name_xtion(self, parser, section):
+        self.population_name_xtion = {}
+        v = parser.get(section, "names")
+        v = [s.strip() for s in v.split("\n")]
+        for line in v:
+            k, v = [s.strip() for s in line.split(":")]
+            self.population_name_xtion[k] = v
+        #print(repr(self.population_name_xtion))
+        #miau
+            
 def strToBool(txt):
     txtl = txt.lower()
     if txtl in _true_values: return True
@@ -301,7 +313,8 @@ def strToBool(txt):
                    
 def read_population_data(filename = None,
                          country_col = None,
-                         population_col = None):
+                         population_col = None, 
+                         population_name_xtion = None):
     if filename == None:     filename = POPULATION_CSV_FILENAME
     if country_col == None:  country_col = POPULATION_CSV_HDR_COUNTRY
     if population_col == None:  population_col = POPULATION_CSV_HDR_POPULATION
@@ -331,6 +344,8 @@ def read_population_data(filename = None,
         conflicted_countries = []
         for row in reader:
             con = row[hdr_dict[POPULATION_CSV_HDR_COUNTRY]]
+            if population_name_xtion != None and con in population_name_xtion:
+                con = population_name_xtion[con]
             if con.find(",") != -1:
                 new_con = con.split(",")[0].strip()
                 log.debug("Adjusting country name from %s to %s"%(repr(con), repr(new_con)))
@@ -812,7 +827,7 @@ def main():
         config_file = os.path.abspath(CONFIG_FILE)
         config = Parameters(filename = config_file)
         
-        population_data = read_population_data()
+        population_data = read_population_data(population_name_xtion = config.population_name_xtion)
         
         corona_data = CoronaBaseData()
         corona_data.set_country_population(population_data)
