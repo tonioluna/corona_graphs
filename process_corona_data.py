@@ -22,9 +22,11 @@ import colorama
 if __name__ == "__main__":
     I_AM_SCRIPT = True
     _me = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    _my_path = os.path.dirname(sys.argv[0])
 else:
     I_AM_SCRIPT = False
-    _me = os.path.splitext(os.path.basename(__file__))[0]
+    _my_path = os.path.dirname(__file__)
+_my_path = os.path.realpath(_my_path)
 
 log = None
 
@@ -123,6 +125,9 @@ CONFIG_FILE = "reports.ini"
 DATA_SOURCE_OURWORLDINDATA = "ourworldindata."
 DATA_SOURCE_CSSEGISSANDATA = "CSSEGISandData"
 
+DATA_SOURCE_TXT = {DATA_SOURCE_CSSEGISSANDATA : "https://github.com/CSSEGISandData/COVID-19",
+                   DATA_SOURCE_OURWORLDINDATA : "https://ourworldindata.org/coronavirus-source-data"}
+
 POPULATION_CSV_FILENAME = "population.csv"
 POPULATION_CSV_HDR_COUNTRY = "Country"
 POPULATION_CSV_HDR_POPULATION = "Population"
@@ -134,7 +139,7 @@ OWID_CORONA_CSV_HDR_NEW_CASES = "new_cases"
 OWID_CORONA_CSV_HDR_NEW_DEATHS = "new_deaths"
 OWID_CORONA_CSV_HDR_TOTAL_CASES = "total_cases"
 OWID_CORONA_CSV_HDR_TOTAL_DEATHS = "total_deaths"
-_corona_csv_required_cols = (OWID_CORONA_CSV_HDR_COUNTRY,
+_owid_corona_csv_required_cols = (OWID_CORONA_CSV_HDR_COUNTRY,
                              OWID_CORONA_CSV_HDR_DATE,
                              OWID_CORONA_CSV_HDR_NEW_CASES,
                              OWID_CORONA_CSV_HDR_NEW_DEATHS,
@@ -142,14 +147,16 @@ _corona_csv_required_cols = (OWID_CORONA_CSV_HDR_COUNTRY,
                              OWID_CORONA_CSV_HDR_TOTAL_DEATHS)
 
 OWID_CoronaDayEntry = collections.namedtuple("OWID_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+CSD_CoronaDayEntry = collections.namedtuple("OWID_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "total_recovered", "new_recovered"))
 
-CSD_CORONA_CSV_DIRECTORY = os.path.join(_me, "..", "COVID-19", "csse_covid_19_data", "csse_covid_19_time_series")
-CSD_CORONA_CSV_FILENAME_CONFIRMED = "time_series_19-covid-Confirmed.csv"
-CSD_CORONA_CSV_FILENAME_DEATHS = "time_series_19-covid-Deaths.csv"
-CSD_CORONA_CSV_FILENAME_RECOVERED = "time_series_19-covid-Recovered.csv"
+CSD_CORONA_CSV_DIRECTORY = os.path.join(_my_path, "..", "COVID-19", "csse_covid_19_data", "csse_covid_19_time_series")
+CSD_CORONA_CSV_FILENAME_CONFIRMED = "time_series_covid19_confirmed_global.csv"
+CSD_CORONA_CSV_FILENAME_DEATHS = "time_series_covid19_deaths_global.csv"
+CSD_CORONA_CSV_FILENAME_RECOVERED = "time_series_covid19_recovered_global.csv"
 CSD_CORONA_CSV_HDR_STATE = "Province/State"
 CSD_CORONA_CSV_HDR_COUNTRY = "Country/Region"
-CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$")
+CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$")
+
     
 PLOT_DATA_MARGIN = 0.04
 PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
@@ -349,17 +356,33 @@ class Parameters:
             elif section == "general":
                 self.report_dir = parser.get("general", 'report_dir').strip()
             elif section == "population_name_translation":
-                self._read_pop_name_xtion(parser, section)
+                self._read_pop_name_xlation(parser, section)
+            elif section == "csd_country_translations":
+                self._read_csd_country_xlation(parser, section)
             else:
                 raise Exception("Don't know how to read section %s"%(repr(section),))
         
-    def _read_pop_name_xtion(self, parser, section):
+    def _read_pop_name_xlation(self, parser, section):
         self.population_name_xlation = {}
         v = parser.get(section, "names")
         v = [s.strip() for s in v.split("\n")]
         for line in v:
             k, v = [s.strip() for s in line.split(":")]
             self.population_name_xlation[k] = v
+
+    def _read_csd_country_xlation(self, parser, section):
+        self.csd_country_xlation = {}
+        self.csd_state_xlation = {}
+        v = parser.get(section, "country_translations")
+        v = [s.strip() for s in v.split("\n")]
+        for line in v:
+            k, v = [s.strip() for s in line.split(":")]
+            self.csd_country_xlation[k] = v
+        v = parser.get(section, "state_translations")
+        v = [s.strip() for s in v.split("\n")]
+        for line in v:
+            k, v = [s.strip() for s in line.split(":")]
+            self.csd_state_xlation[k] = v
         #print(repr(self.population_name_xlation))
         #miau
             
@@ -441,64 +464,142 @@ class CoronaBaseData:
     def _read_csd(self):
         # Worry about how to receive the filename later
         assert self.csv_filename == None
-        assert os.path.isdir(CSD_CORONA_CSV_DIRECTORY), "CSD data source does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(CSD_CORONA_CSV_DIRECTORY,)
+        assert os.path.isdir(CSD_CORONA_CSV_DIRECTORY), "CSD data source directory does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(CSD_CORONA_CSV_DIRECTORY,)
             
         self.csv_filename_confirmed = os.path.join(CSD_CORONA_CSV_DIRECTORY, CSD_CORONA_CSV_FILENAME_CONFIRMED)
         self.csv_filename_recovered = os.path.join(CSD_CORONA_CSV_DIRECTORY, CSD_CORONA_CSV_FILENAME_RECOVERED)
         self.csv_filename_deaths = os.path.join(CSD_CORONA_CSV_DIRECTORY, CSD_CORONA_CSV_FILENAME_DEATHS)
         
-        assert os.path.isdir(self.csv_filename_confirmed), "CSD data source does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_confirmed,)
-        assert os.path.isdir(self.csv_filename_recovered), "CSD data source does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_recovered,)
-        assert os.path.isdir(self.csv_filename_deaths), "CSD data source does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_deaths,)
+        assert os.path.isfile(self.csv_filename_confirmed), "CSD data source (confirmed) does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_confirmed,)
+        assert os.path.isfile(self.csv_filename_recovered), "CSD data source (recovered) does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_recovered,)
+        assert os.path.isfile(self.csv_filename_deaths),    "CSD data source (deaths) does not exist at %s. Did you get the repo from https://github.com/CSSEGISandData/COVID-19?"%(self.csv_filename_deaths,)
         
+        data_confirmed, dates1 = self._read_csd_csv_file(self.csv_filename_confirmed)
+        data_recovered, dates2 = self._read_csd_csv_file(self.csv_filename_recovered)
+        data_deaths   , dates3 = self._read_csd_csv_file(self.csv_filename_deaths)
         
+        self.dates = []
+        for date_list in (dates1, dates2, dates3):
+            for d in date_list:
+                if d not in self.dates: 
+                    self.dates.append(d)
+        self.dates.sort()
         
+        countries = []
+        for data_dict in (data_confirmed, data_recovered, data_deaths):
+            for c in data_dict.keys():
+                if c not in countries:
+                    countries.append(c)
         
-    def _read_csv_file(self, filename):
+        countries.sort()
+        self.data = {}
+            
+            
+        for country in countries:
+            prev_confirmed = 0
+            prev_recovered = 0
+            prev_deaths = 0
+            
+            self.data[country] = {}
+
+            for date in self.dates:
+                confirmed = data_confirmed.get(country, {}).get(date, prev_confirmed)
+                recovered = data_recovered.get(country, {}).get(date, prev_recovered)
+                deaths = data_deaths.get(country, {}).get(date, prev_deaths)
+                                
+                total_deaths    = deaths 
+                new_deaths      = deaths - prev_deaths
+                total_cases     = confirmed
+                new_cases       = confirmed - prev_confirmed
+                total_recovered = recovered
+                new_recovered   = recovered - prev_recovered
+                
+                e = CSD_CoronaDayEntry(total_deaths, total_cases, new_deaths, new_cases, total_recovered, new_recovered)
+                self.data[country][date] = e
+                
+                prev_confirmed = confirmed
+                prev_recovered = recovered
+                prev_deaths = deaths
+        
+        log.info("Read %i entries from %s to %s"%(len(self.dates), 
+                                          time.strftime("%Y/%m/%d", time.localtime(min(self.dates)))  ,
+                                          time.strftime("%Y/%m/%d", time.localtime(max(self.dates)))  ))
+        
+    def _read_csd_csv_file(self, filename):
     
-        log.info("Reading corona data from %s"%(self.csv_filename))
+        log.info("Reading partial CSD corona data from %s"%(filename))
         
-        with codecs.open(self.csv_filename, "r", "utf8") as fh:
+        with codecs.open(filename, "r", "utf8") as fh:
             reader = csv.reader(fh)
             # Read header
             hdr_row = next(reader)
             hdr_dict = {}
-            for index, cell in enumerate(hdr_row):
-                if cell in _corona_csv_required_cols:
-                    assert cell not in hdr_dict, "Duplicated header entry: %s"%(cell,)
-                    hdr_dict[cell] = index
-            assert len(hdr_dict) == len(_corona_csv_required_cols), "Unable to get all header items %s from %s"%(repr(_corona_csv_required_cols), repr(hdr_row),)
             
-            self.data = {}
-            self.dates = []
+            state_hdr_index = None
+            country_hdr_index = None
+            date_indexes = {}
+            for index, cell in enumerate(hdr_row):
+                if cell == CSD_CORONA_CSV_HDR_COUNTRY:
+                    country_hdr_index = index
+                elif cell == CSD_CORONA_CSV_HDR_STATE:
+                    state_hdr_index = index
+                elif CSD_CORONA_CSV_HDR_DATE_REGEX.match(cell) != None:
+                    date = time.mktime(time.strptime(cell, "%m/%d/%y"))
+                    date_indexes[index] = date
+                else:
+                    log.warning("Unknown header item at col %i: %s"%(index, cell, ))
+                
+            assert state_hdr_index != None and country_hdr_index != None, "" +\
+                "Unable to get all header items"
+            
+            data = {}
             
             rnum = 1
             for row in reader:
                 rnum += 1
                 try:
-                    country = row[hdr_dict[OWID_CORONA_CSV_HDR_COUNTRY]]
-                    if country not in self.data:
-                        self.data[country] = {}
-                    date_s = row[hdr_dict[OWID_CORONA_CSV_HDR_DATE]]
-                    date = time.mktime(time.strptime(date_s, "%Y-%m-%d"))
-                    if date not in self.dates:
-                        self.dates.append(date)
+                    country = row[country_hdr_index]
+                    state = row[state_hdr_index]
                     
-                    total_deaths = int(row[hdr_dict[OWID_CORONA_CSV_HDR_TOTAL_DEATHS]]) if row[hdr_dict[OWID_CORONA_CSV_HDR_TOTAL_DEATHS]] != "" else 0 
-                    total_cases  = int(row[hdr_dict[OWID_CORONA_CSV_HDR_TOTAL_CASES]])  if row[hdr_dict[OWID_CORONA_CSV_HDR_TOTAL_CASES]]  != "" else 0
-                    new_deaths   = int(row[hdr_dict[OWID_CORONA_CSV_HDR_NEW_DEATHS]])   if row[hdr_dict[OWID_CORONA_CSV_HDR_NEW_DEATHS]]   != "" else 0
-                    new_cases    = int(row[hdr_dict[OWID_CORONA_CSV_HDR_NEW_CASES]])    if row[hdr_dict[OWID_CORONA_CSV_HDR_NEW_CASES]]    != "" else 0
+                    # first do xlation on states
+                    country_state = "%s.%s"%(country, state)
+                    if country_state in self.config_file.csd_state_xlation:
+                        country = self.config_file.csd_state_xlation[country_state]
+                    # Then do country xlation
+                    if country in self.config_file.csd_country_xlation:
+                        country = self.config_file.csd_country_xlation[country]
                     
-                    e = OWID_CoronaDayEntry(total_deaths, total_cases, new_deaths, new_cases)
-                    self.data[country][date] = e
+                    if country not in data:
+                        data[country] = {}
+                    
+                    for index, date in date_indexes.items():
+                        try:
+                            num = int(row[index])
+                        except ValueError as ex:
+                            log.debug("Invalid value for date %s (col %i) at %s/%s (row %i): %s (%s)"
+                                        ""%(time.strftime("%Y/%m/%d", time.localtime(date)),
+                                            index,
+                                            state,
+                                            country,
+                                            rnum,
+                                            repr(row[index]),
+                                            ex
+                                            ))
+                            continue
+                        # Do this so countries which take multiple rows can be added
+                        data[country][date] = num + data[country].get(date, 0)
+                    
                 except Exception as ex:
                     raise Exception("Failed to process data at row %i: %s"%(rnum, ex))
             
-            self.dates.sort()
+            dates = list(date_indexes.values())
+            dates.sort()
             
-            log.info("Read %i entries from %s to %s"%(rnum - 1, 
-                                                      time.strftime("%Y/%m/%d", time.localtime(min(self.dates)))  ,
-                                                      time.strftime("%Y/%m/%d", time.localtime(max(self.dates)))  ))
+            log.info("Read %i contries/states from %s to %s"%(rnum - 1, 
+                                                              time.strftime("%Y/%m/%d", time.localtime(min(dates)))  ,
+                                                              time.strftime("%Y/%m/%d", time.localtime(max(dates)))  ))
+            
+            return data, dates
     
     
     def _read_owid(self):
@@ -514,10 +615,10 @@ class CoronaBaseData:
             hdr_row = next(reader)
             hdr_dict = {}
             for index, cell in enumerate(hdr_row):
-                if cell in _corona_csv_required_cols:
+                if cell in _owid_corona_csv_required_cols:
                     assert cell not in hdr_dict, "Duplicated header entry: %s"%(cell,)
                     hdr_dict[cell] = index
-            assert len(hdr_dict) == len(_corona_csv_required_cols), "Unable to get all header items %s from %s"%(repr(_corona_csv_required_cols), repr(hdr_row),)
+            assert len(hdr_dict) == len(_owid_corona_csv_required_cols), "Unable to get all header items %s from %s"%(repr(_owid_corona_csv_required_cols), repr(hdr_row),)
             
             self.data = {}
             self.dates = []
@@ -890,7 +991,8 @@ class CoronaBaseData:
         if True or report.plot_y_scale == PLOT_SCALE_LOG:
             ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_log_scale))
         
-        plt.gcf().text(0.01, 0.01, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(DATA_SOURCE_TXT.get(self.data_source, "UNK_%s"%(self.data_source))), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
@@ -1077,7 +1179,10 @@ def main():
         
         population_data = read_population_data(population_name_xlation = config.population_name_xlation)
         
-        corona_data = CoronaBaseData(data_source = DATA_SOURCE_OURWORLDINDATA, config_file = config_file)
+        data_source = DATA_SOURCE_CSSEGISSANDATA
+        #data_source = DATA_SOURCE_OURWORLDINDATA
+        
+        corona_data = CoronaBaseData(data_source = data_source, config_file = config)
         corona_data.set_country_population(population_data)
         
         if config.report_dir == "@AUTO":
