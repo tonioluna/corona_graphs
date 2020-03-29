@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 import colorama
+from scipy.ndimage.filters import gaussian_filter1d
 
 if __name__ == "__main__":
     I_AM_SCRIPT = True
@@ -30,6 +31,9 @@ _my_path = os.path.realpath(_my_path)
 
 log = None
 
+_true_values = ("true", "yes", "1", "sure", "why_not")
+_false_values = ("false", "no", "0", "nope", "no_way")
+
 FORMAT_CSV = "csv"
 FORMAT_PLOT = "plot"
 FORMAT_XLSX = "xlsx"
@@ -38,11 +42,13 @@ _known_formats = (FORMAT_CSV,
                   FORMAT_XLSX)
 
 TIMELINE_ORIGINAL = "original"
+TIMELINE_TOTAL_CONFIRMED_CASES = "total_confirmed_cases"
 TIMELINE_FIRST_100_CASES = "first_100_cases"
 TIMELINE_FIRST_CASE_PER_1M = "first_case_per_1m"
 TIMELINE_FIRST_CASE_PER_10K = "first_case_per_10k"
 TIMELINE_FIRST_CASE_PER_10M = "first_case_per_10m"
 _known_timelines = (TIMELINE_ORIGINAL,
+                    TIMELINE_TOTAL_CONFIRMED_CASES,
                     TIMELINE_FIRST_100_CASES,
                     TIMELINE_FIRST_CASE_PER_10K,
                     TIMELINE_FIRST_CASE_PER_10M,
@@ -55,10 +61,11 @@ _timeline_needs_population = (TIMELINE_FIRST_100_CASES,
                               TIMELINE_FIRST_CASE_PER_1M,
                               )
 
-_float_timelines = (TIMELINE_FIRST_100_CASES,
-                      TIMELINE_FIRST_CASE_PER_10K,
-                      TIMELINE_FIRST_CASE_PER_10M,
-                      TIMELINE_FIRST_CASE_PER_1M)
+_float_timelines = (TIMELINE_TOTAL_CONFIRMED_CASES,
+                    TIMELINE_FIRST_100_CASES,
+                    TIMELINE_FIRST_CASE_PER_10K,
+                    TIMELINE_FIRST_CASE_PER_10M,
+                    TIMELINE_FIRST_CASE_PER_1M)
 
  
 DATA_TOTAL_CASES_PER_1M = "total_cases_per_1m"
@@ -71,6 +78,10 @@ DATA_TOTAL_DEATHS_PER_1M = "total_deaths_per_1m"
 DATA_TOTAL_DEATHS = "total_deaths"
 DATA_NEW_DEATHS_PER_1M = "new_deaths_per_1m"
 DATA_NEW_DEATHS = "new_deaths"
+DATA_ACTIVE_CASES = "active_cases"
+DATA_ACTIVE_CASES_PER_1M = "active_cases_per_1m"
+DATA_NEW_DEATHS_PER_ACTIVE_CASES = "new_deaths_per_active_cases"
+DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases"
 _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_CASES_PER_10K,
                DATA_TOTAL_CASES_PER_10M,
@@ -80,15 +91,49 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_DEATHS,
                DATA_TOTAL_DEATHS_PER_1M,
                DATA_NEW_DEATHS,
-               DATA_NEW_DEATHS_PER_1M,            
+               DATA_NEW_DEATHS_PER_1M,
+               DATA_ACTIVE_CASES,
+               DATA_ACTIVE_CASES_PER_1M,
+               DATA_NEW_DEATHS_PER_ACTIVE_CASES,
+               DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,            
                )
+_data_requires_csd_source = (DATA_ACTIVE_CASES,
+                             DATA_NEW_DEATHS_PER_ACTIVE_CASES,
+                             DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,
+                             DATA_ACTIVE_CASES_PER_1M,
+                            )
 _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M, 
                                DATA_TOTAL_CASES_PER_10K, 
                                DATA_TOTAL_CASES_PER_10M,
                                DATA_NEW_CASES_PER_1M,
                                DATA_TOTAL_DEATHS_PER_1M,
                                DATA_NEW_DEATHS_PER_1M,
+                               DATA_ACTIVE_CASES_PER_1M,
                                )
+
+_timeline_display_names = {TIMELINE_ORIGINAL:"Date",
+                           TIMELINE_TOTAL_CONFIRMED_CASES:"Total confirmed cases", 
+                           TIMELINE_FIRST_100_CASES:"Days (0 -> First 100 total cases)",
+                           TIMELINE_FIRST_CASE_PER_10K:"Days (0 -> First case per 10K habs)",
+                           TIMELINE_FIRST_CASE_PER_10M:"Days (0 -> First case per 10M habs)",
+                           TIMELINE_FIRST_CASE_PER_1M:"Days (0 -> First case per 1M habs)",
+                           }
+
+_data_display_names = {DATA_TOTAL_CASES:"Total cases",
+                       DATA_TOTAL_CASES_PER_10K:"Total cases / 10K Habs", 
+                       DATA_TOTAL_CASES_PER_1M:"Total cases / 1M Habs",
+                       DATA_TOTAL_CASES_PER_10M:"Total cases / 10M Habs",
+                       DATA_NEW_CASES:"New cases per day",
+                       DATA_NEW_CASES_PER_1M:"New cases per day / 1M Habs",
+                       DATA_TOTAL_DEATHS:"Total deaths",
+                       DATA_TOTAL_DEATHS_PER_1M:"Total deaths / 1M Habs",
+                       DATA_NEW_DEATHS:"New deaths per day",
+                       DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
+                       DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
+                       DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
+                       DATA_ACTIVE_CASES:"Active Cases",
+                       DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
+                       }
 
 FILTER_NONE = "none"
 FILTER_TOP_MAX = "top_max"
@@ -111,6 +156,11 @@ _known_plot_styles = (PLOT_STYLE_LINE,
                       PLOT_STYLE_MARKERS,
                       )
 
+PLOT_LINE_LEGEND_STYLE_STANDARD = "standard"
+PLOT_LINE_LEGEND_STYLE_EOL_MARKER = "end_of_line_marker"
+_known_plot_line_legend_styles = (PLOT_LINE_LEGEND_STYLE_EOL_MARKER,
+                                  PLOT_LINE_LEGEND_STYLE_STANDARD)
+
 PLOT_SCALE_LOG = "log"
 PLOT_SCALE_LINEAR = "linear"
 _known_plot_scales = (PLOT_SCALE_LINEAR,
@@ -125,8 +175,8 @@ CONFIG_FILE = "reports.ini"
 DATA_SOURCE_OURWORLDINDATA = "ourworldindata."
 DATA_SOURCE_CSSEGISSANDATA = "CSSEGISandData"
 
-DATA_SOURCE_TXT = {DATA_SOURCE_CSSEGISSANDATA : "https://github.com/CSSEGISandData/COVID-19",
-                   DATA_SOURCE_OURWORLDINDATA : "https://ourworldindata.org/coronavirus-source-data"}
+DATA_SOURCE_TXT = {DATA_SOURCE_CSSEGISSANDATA : "John Hopkins University - https://github.com/CSSEGISandData/COVID-19",
+                   DATA_SOURCE_OURWORLDINDATA : "Our World in Data - https://ourworldindata.org/coronavirus-source-data"}
 
 POPULATION_CSV_FILENAME = "population.csv"
 POPULATION_CSV_HDR_COUNTRY = "Country"
@@ -176,7 +226,7 @@ _plot_line_markers = (".",
                       "^",
                       "v",
                       "1",
-                      "3",
+                      #"3",
                       "P",
                       "*",
                       "+",
@@ -252,7 +302,14 @@ class Report:
         for format in self.formats:
             assert format in _known_formats, "Unsupported format: %s"%(format)
         
-        self.filename = config_reader.get(section, "filename").strip()
+        self.filename = config_reader.get(section, "filename").strip() if config_reader.has_option(section, "filename") else "@AUTO"
+        if self.filename == "@AUTO":
+            self.filename = self.ID
+        
+        self.filter_sigma = float(config_reader.get(section, "filter_sigma")) if config_reader.has_option(section, "filter_sigma") else None
+        self.axis2_filter_sigma = float(config_reader.get(section, "axis2_filter_sigma")) if config_reader.has_option(section, "axis2_filter_sigma") else None
+        
+        
         
         self.sort_columns = config_reader.get(section, "sort_columns").strip()
         assert self.sort_columns in _known_sorts, "Unsupported sort_columns: %s"%(self.sort_columns)
@@ -277,7 +334,7 @@ class Report:
             elif self.timeline in _float_timelines:
                 self.plot_x_range = [(float(i) if i != "" else None) for i in rng]
             else:
-                raise Exception("Don't know what type of range will be used on timeline of type %s"%(self.timeline))
+                log.error("Don't know what type of range will be used on timeline of type %s"%(self.timeline))
         else:
             self.plot_x_range = None
             
@@ -302,11 +359,21 @@ class Report:
         if config_reader.has_option(section, "plot_style"):
             self.plot_style = config_reader.get(section, "plot_style")
         assert self.plot_style in _known_plot_styles, "Invalid parameter plot_style: %s"%(self.plot_style, )
+
+        self.plot_line_width = 0.75 if not config_reader.has_option(section, "plot_line_width") else float(config_reader.get(section, "plot_line_width"))
+        self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not config_reader.has_option(section, "plot_line_legend_style") else config_reader.get(section, "plot_line_legend_style")
+        assert self.plot_line_legend_style in _known_plot_line_legend_styles, "Invalid style for plot_line_legend_style: %s"%(self.plot_line_legend_style)
+         
                 
         self.plot_y_scale = PLOT_SCALE_LINEAR
         if config_reader.has_option(section, "plot_y_scale"):
             self.plot_y_scale = config_reader.get(section, "plot_y_scale")
         assert self.plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.plot_y_scale, )
+        
+        self.plot_x_scale = PLOT_SCALE_LINEAR
+        if config_reader.has_option(section, "plot_x_scale"):
+            self.plot_x_scale = config_reader.get(section, "plot_y_scale")
+        assert self.plot_x_scale in _known_plot_scales, "Invalid parameter plot_x_scale: %s"%(self.plot_x_scale, )
         
         
         # AXIS 2
@@ -331,6 +398,7 @@ class Report:
             self.axis2_plot_y_scale = config_reader.get(section, "axis2_plot_y_scale")
         assert self.axis2_plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.axis2_plot_y_scale, )
         
+        self.sync_both_y_axis = False if not config_reader.has_option(section, "sync_both_y_axis") else strToBool(config_reader.get(section, "sync_both_y_axis"))
 
 class Parameters:
     def __init__(self, filename):
@@ -360,7 +428,7 @@ class Parameters:
             elif section == "csd_country_translations":
                 self._read_csd_country_xlation(parser, section)
             else:
-                raise Exception("Don't know how to read section %s"%(repr(section),))
+                log.warning("Don't know how to read section %s"%(repr(section),))
         
     def _read_pop_name_xlation(self, parser, section):
         self.population_name_xlation = {}
@@ -384,7 +452,7 @@ class Parameters:
             k, v = [s.strip() for s in line.split(":")]
             self.csd_state_xlation[k] = v
         #print(repr(self.population_name_xlation))
-        #miau
+        
             
 def strToBool(txt):
     txtl = txt.lower()
@@ -522,8 +590,8 @@ class CoronaBaseData:
                 prev_deaths = deaths
         
         log.info("Read %i entries from %s to %s"%(len(self.dates), 
-                                          time.strftime("%Y/%m/%d", time.localtime(min(self.dates)))  ,
-                                          time.strftime("%Y/%m/%d", time.localtime(max(self.dates)))  ))
+                                          _format_date(min(self.dates))  ,
+                                          _format_date(max(self.dates))  ))
         
     def _read_csd_csv_file(self, filename):
     
@@ -577,7 +645,7 @@ class CoronaBaseData:
                             num = int(row[index])
                         except ValueError as ex:
                             log.debug("Invalid value for date %s (col %i) at %s/%s (row %i): %s (%s)"
-                                        ""%(time.strftime("%Y/%m/%d", time.localtime(date)),
+                                        ""%(_format_date(date),
                                             index,
                                             state,
                                             country,
@@ -596,8 +664,8 @@ class CoronaBaseData:
             dates.sort()
             
             log.info("Read %i contries/states from %s to %s"%(rnum - 1, 
-                                                              time.strftime("%Y/%m/%d", time.localtime(min(dates)))  ,
-                                                              time.strftime("%Y/%m/%d", time.localtime(max(dates)))  ))
+                                                              _format_date(min(dates))  ,
+                                                              _format_date(max(dates))  ))
             
             return data, dates
     
@@ -648,8 +716,8 @@ class CoronaBaseData:
             self.dates.sort()
             
             log.info("Read %i entries from %s to %s"%(rnum - 1, 
-                                                      time.strftime("%Y/%m/%d", time.localtime(min(self.dates)))  ,
-                                                      time.strftime("%Y/%m/%d", time.localtime(max(self.dates)))  ))
+                                                      _format_date(min(self.dates))  ,
+                                                      _format_date(max(self.dates))  ))
             
     def set_country_population(self, pop_data):
         self.population = {}
@@ -671,6 +739,13 @@ class CoronaBaseData:
         log.debug("           Sort: %s"%(report.sort_columns, ))
         log.debug("   Filter value: %s"%(repr(report.filter_value), ))
         try:
+            axis2_enabled = False
+            if report.axis2_data_type != None:
+                axis2_enabled = True
+            
+            if report.data_type in _data_requires_csd_source or (axis2_enabled and report.axis2_data_type in _data_requires_csd_source):
+                assert self.data_source == DATA_SOURCE_CSSEGISSANDATA, "This report requires data available only on source %s"%(_get_data_source_name(self.data_source)) 
+            
             # if country population is required, then limit the countries to export
             if report.data_type in _data_type_needs_population or \
                 report.filter in _timeline_needs_population:
@@ -679,23 +754,26 @@ class CoronaBaseData:
                 countries = list(self.data.keys())
             
             if report.exclude_countries != None:
+                exclude_count = 0
                 new_countries = []
                 for country in countries:
                     if country not in report.exclude_countries:
                         new_countries.append(country)
                     else:
-                        log.warning("Skipping country %s"%(country, ))
+                        log.debug("Skipping country %s"%(country, ))
+                        exclude_count += 1
                 countries = new_countries
+                if exclude_count != 0:
+                    log.warning("%i countries excluded as indicated on report parameters"%(exclude_count))
             
             date_domain, country_timelines = self._get_country_timelines(report.timeline, countries)
             
             report_data = []
             report_data_axis2 = None
-            axis2_enabled = False
-            if report.axis2_data_type != None:
+            if axis2_enabled:
                 report_data_axis2 = []
-                axis2_enabled = True
                 
+            zeroDivisionErrorCount = 0
             for adj_date in date_domain:
                 for axis_index in range(0, 2):
                     if axis_index == 0:
@@ -712,32 +790,49 @@ class CoronaBaseData:
                         if country in country_timelines and adj_date in country_timelines[country]:
                             actual_date = country_timelines[country][adj_date]
                             if actual_date in self.data[country]:
-                                if dt == DATA_TOTAL_CASES:
-                                    data = self.data[country][actual_date].total_cases
-                                elif dt == DATA_TOTAL_DEATHS:
-                                    data = self.data[country][actual_date].total_deaths
-                                elif dt == DATA_NEW_DEATHS:
-                                    data = self.data[country][actual_date].new_deaths
-                                elif dt == DATA_TOTAL_CASES_PER_1M:
-                                    data = self.data[country][actual_date].total_cases / (self.population[country] / 1000000)
-                                elif dt == DATA_TOTAL_CASES_PER_10M:
-                                    data = self.data[country][actual_date].total_cases / (self.population[country] / 10000000)
-                                elif dt == DATA_TOTAL_CASES_PER_10K:
-                                    data = self.data[country][actual_date].total_cases / (self.population[country] / 10000)
-                                elif dt == DATA_NEW_CASES:
-                                    data = self.data[country][actual_date].new_cases
-                                elif dt == DATA_NEW_CASES_PER_1M:
-                                    data = self.data[country][actual_date].new_cases / (self.population[country] / 1000000)
-                                elif dt == DATA_TOTAL_DEATHS_PER_1M:
-                                    data = self.data[country][actual_date].total_deaths / (self.population[country] / 1000000)
-                                elif dt == DATA_NEW_DEATHS_PER_1M:
-                                    data = self.data[country][actual_date].new_deaths / (self.population[country] / 1000000)
-                                else:
-                                    raise Exception("Unsupported data type: %s"%(dt))
+                                try:
+                                    if dt == DATA_TOTAL_CASES:
+                                        data = self.data[country][actual_date].total_cases
+                                    elif dt == DATA_TOTAL_DEATHS:
+                                        data = self.data[country][actual_date].total_deaths
+                                    elif dt == DATA_ACTIVE_CASES:
+                                        data = self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered 
+                                    elif dt == DATA_ACTIVE_CASES_PER_1M:
+                                        data = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / (self.population[country] / 1000000)
+                                    elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES:
+                                        data = self.data[country][actual_date].new_deaths / (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
+                                    elif dt == DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:
+                                        data = self.data[country][actual_date].new_deaths / ( (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / 1000)
+                                    elif dt == DATA_NEW_DEATHS:
+                                        data = self.data[country][actual_date].new_deaths
+                                    elif dt == DATA_TOTAL_CASES_PER_1M:
+                                        data = self.data[country][actual_date].total_cases / (self.population[country] / 1000000)
+                                    elif dt == DATA_TOTAL_CASES_PER_10M:
+                                        data = self.data[country][actual_date].total_cases / (self.population[country] / 10000000)
+                                    elif dt == DATA_TOTAL_CASES_PER_10K:
+                                        data = self.data[country][actual_date].total_cases / (self.population[country] / 10000)
+                                    elif dt == DATA_NEW_CASES:
+                                        data = self.data[country][actual_date].new_cases
+                                    elif dt == DATA_NEW_CASES_PER_1M:
+                                        data = self.data[country][actual_date].new_cases / (self.population[country] / 1000000)
+                                    elif dt == DATA_TOTAL_DEATHS_PER_1M:
+                                        data = self.data[country][actual_date].total_deaths / (self.population[country] / 1000000)
+                                    elif dt == DATA_NEW_DEATHS_PER_1M:
+                                        data = self.data[country][actual_date].new_deaths / (self.population[country] / 1000000)
+                                    else:
+                                        raise Exception("Unsupported data type: %s"%(dt))
+                                except ZeroDivisionError:
+                                    log.debug("Zero-division error on data %s on %s at %s, ignoring data point"%(dt, _format_date(actual_date), country))
+                                    zeroDivisionErrorCount += 1 
+                            
                         row[country] = data
                         #data_max = data_max if data == None else (data if data_max == None else max(data, data_max))
                         #data_min = data_min if data == None else (data if data_min == None else min(data, data_min))
                     rd.append(row)
+            
+            if zeroDivisionErrorCount > 0:
+                log.warning("Detected %i zero-division errorw while running report %s. Those data points were ignored."%(zeroDivisionErrorCount, report.ID))
+                                    
             
             # Apply filters
             # Filters are applied only for the first axis. The second one will follow
@@ -745,6 +840,12 @@ class CoronaBaseData:
                                                           report.filter, 
                                                           report.filter_value,
                                                           countries)
+            
+            # Smooth data
+            if report.filter_sigma != None:
+                self.smooth_data(report_data, report.filter_sigma, selected_countries)
+            if axis2_enabled and report.axis2_filter_sigma != None:
+                self.smooth_data(report_data_axis2, report.axis2_filter_sigma, selected_countries)
         
             # Calculate max and min only after the filter is applied
             data_max = None
@@ -819,6 +920,28 @@ class CoronaBaseData:
             log.error("Failed to export data to report %s: %s"%(report.filename, ex))
             log.debug(traceback.format_exc())
     
+    def smooth_data(self, data, filter_sigma, selected_countries):
+        log.info("Smoothing data...")
+        for country in selected_countries:
+            # First, extract the data series from the dictionary
+            # And save which rows had data
+            rows_with_data = []
+            array = []
+            for index, row in enumerate(data):
+                if not country in row or row[country] == None: continue
+                rows_with_data.append(index)
+                array.append(row[country])
+                    
+            # Smooth the data
+            array = gaussian_filter1d(array, filter_sigma)
+            
+            # Then, put the data back into the array
+            read_index = 0
+            for index, row in enumerate(data):
+                if index not in rows_with_data: continue
+                row[country] = array[read_index]
+                read_index += 1
+    
     def _set_range_margin(self, rng, adjust_min, adjust_max):
         log.debug("Pre-scale:  %s"%(repr(rng)))
         delta = (rng[1] - rng[0]) * PLOT_DATA_MARGIN
@@ -869,10 +992,16 @@ class CoronaBaseData:
                         x2.append(adj_date)
                     y2.append(data)
                 
-            line, = ax1.plot(x, y, label=country, linewidth = 0.75 if country != "Mexico" else 1)
             if report.plot_style == PLOT_STYLE_LINE:
+                line, = ax1.plot(x, 
+                                 y, 
+                                 label = country if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_STANDARD else None, 
+                                 linewidth = report.plot_line_width if country != "Mexico" else report.plot_line_width * 1.5)
+                if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_EOL_MARKER:
+                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[index % len(_plot_line_markers)], color=line.get_color(), zorder=2, s = (20 if country != "Mexico" else 100), label=country)
                 line.set_dashes(_plot_line_styles[index % len(_plot_line_styles)])
             elif report.plot_style == PLOT_STYLE_MARKERS:
+                line, = ax1.plot(x, y, label=country, linewidth = 0.75 if country != "Mexico" else 1)
                 line.set_dashes((0, 1))
                 line.set_marker(_plot_line_markers[index % len(_plot_line_markers)])
                 line.set_markersize(3 if country != "Mexico" else 4.5)
@@ -892,6 +1021,7 @@ class CoronaBaseData:
                 
         #plt.show()
         ax1.set_yscale(report.plot_y_scale)
+        ax1.set_xscale(report.plot_x_scale)
         if axis2_report_data != None:
             ax2.set_yscale(report.axis2_plot_y_scale)
         
@@ -913,16 +1043,8 @@ class CoronaBaseData:
             txt = plt.title(report.plot_subtitle, fontsize = 7)
             plt.setp(txt, color=PLOT_EXTERNAL_FONT_COLOR)
         
-        if timeline == TIMELINE_ORIGINAL:
-            ax1.set_xlabel("Date", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-        elif timeline == TIMELINE_FIRST_100_CASES:
-            ax1.set_xlabel("Days (0 -> First 100 total cases)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-        elif timeline == TIMELINE_FIRST_CASE_PER_10K:
-            ax1.set_xlabel("Days (0 -> First case per 10K habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-        elif timeline == TIMELINE_FIRST_CASE_PER_10M:
-            ax1.set_xlabel("Days (0 -> First case per 10M habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-        elif timeline == TIMELINE_FIRST_CASE_PER_1M:
-            ax1.set_xlabel("Days (0 -> First case per 1M habs)", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+        if timeline in _timeline_display_names:
+            ax1.set_xlabel(_timeline_display_names.get(timeline), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
         else:
             log.warning("No label defined for timeline type %s"%(timeline, ))
 
@@ -934,26 +1056,9 @@ class CoronaBaseData:
                 if axis2_report_data == None: continue
                 dt = report.axis2_data_type
                 ax = ax2
-            if dt == DATA_TOTAL_CASES:
-                ax.set_ylabel("Total cases", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_TOTAL_CASES_PER_10K:
-                ax.set_ylabel("Total cases / 10K Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_TOTAL_CASES_PER_1M:
-                ax.set_ylabel("Total cases / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_TOTAL_CASES_PER_10M:
-                ax.set_ylabel("Total cases / 10M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_NEW_CASES:
-                ax.set_ylabel("New cases per day", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_NEW_CASES_PER_1M:
-                ax.set_ylabel("New cases per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_TOTAL_DEATHS:
-                ax.set_ylabel("Total deaths", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_TOTAL_DEATHS_PER_1M:
-                ax.set_ylabel("Total deaths / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_NEW_DEATHS:
-                ax.set_ylabel("New deaths per day", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif dt == DATA_NEW_DEATHS_PER_1M:
-                ax.set_ylabel("New deaths per day / 1M Habs", fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+            
+            if dt in _data_display_names:
+                ax.set_ylabel(_data_display_names.get(dt), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
             else:
                 log.warning("No label defined for data type %s"%(dt, ))
     
@@ -981,35 +1086,46 @@ class CoronaBaseData:
             #ax1.format_xdata = mdates.DateFormatter('%Y-%m-%d')
             formatter = mdates.DateFormatter("%y/%m/%d")
             ax1.xaxis.set_major_formatter(formatter)
-        
+        elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
+            ax1.xaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+            
         ax1.grid(True, color=PLOT_GRID_COLOR)
         fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
         #plt.tight_layout()
         
         ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE)
         
-        if True or report.plot_y_scale == PLOT_SCALE_LOG:
-            ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_log_scale))
+        ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+        if axis2_report_data != None:
+            ax2.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         
-        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(DATA_SOURCE_TXT.get(self.data_source, "UNK_%s"%(self.data_source))), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        if report.sync_both_y_axis:
+            ax2.set_yticks(ax1.get_yticks())
+            ax2.set_ylim(ax1.get_ylim())
+        
+        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
         plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
         
-    def format_log_scale(self, x, pos=None):
+    def format_axis_ticks(self, x, pos=None):
         def round_to_int(n):
-            if n%1 == 0:
+            if n%1 < 0.001:
                 return int(n)
             return n
         
         if x >= 1000000: 
             r = "%sM"%(round_to_int(x/1000000))
         elif x >= 1000: 
-            r = "%sK"%(round_to_int(x/1000))
+            r = "%sk"%(round_to_int(x/1000))
         elif x >= 1: 
             r = "%s"%(round_to_int(x))
+        elif x >= 0.001: 
+            r = "%s$m$"%(round_to_int(x*1000))
+        elif x >= 0.000001: 
+            r = "%s$\mu$"%(round_to_int(x*1000000))
         else:
             r = "%s"%x 
         
@@ -1096,9 +1212,11 @@ class CoronaBaseData:
         
     def format_adjusted_date(self, date, timeline):
         if timeline == TIMELINE_ORIGINAL:
-            return time.strftime("%Y/%m/%d", time.localtime(date))
+            return _format_date(date)
         if timeline in (TIMELINE_FIRST_100_CASES, TIMELINE_FIRST_CASE_PER_1M, TIMELINE_FIRST_CASE_PER_10K, TIMELINE_FIRST_CASE_PER_10M):
             return "%i Days"%(date, )
+        if timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
+            return "%i Confirmed Cases"%(date,)
     
         raise Exception("Unsupported timeline: %s"%(timeline,))
         
@@ -1114,6 +1232,13 @@ class CoronaBaseData:
                 base_timeline[date] = date
             for country in selected_countries:
                 country_timelines[country] = base_timeline
+        elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
+            for country in selected_countries:
+                timeline = {}
+                for index, date in enumerate(self.dates):
+                    if date not in self.data[country] or self.data[country][date].total_cases == None: continue
+                    timeline[self.data[country][date].total_cases] = date
+                country_timelines[country] = timeline
         elif timeline == TIMELINE_FIRST_100_CASES:
             # Lookup on each country when these got 100 cases or more
             for country in selected_countries:
@@ -1128,7 +1253,7 @@ class CoronaBaseData:
                 timeline = {}
                 for index, date in enumerate(self.dates):
                     days = index - _100_cases_index
-                    log.debug("%s, %i days"%(time.strftime("%Y/%m/%d", time.localtime(date)), days))
+                    log.debug("%s, %i days"%(_format_date(date), days))
                     timeline[days] = date
                 country_timelines[country] = timeline
         elif timeline in (TIMELINE_FIRST_CASE_PER_1M, TIMELINE_FIRST_CASE_PER_10K, TIMELINE_FIRST_CASE_PER_10M):
@@ -1154,7 +1279,7 @@ class CoronaBaseData:
                 timeline = {}
                 for index, date in enumerate(self.dates):
                     days = index - _100_cases_index
-                    log.debug("%s, %i days"%(time.strftime("%Y/%m/%d", time.localtime(date)), days))
+                    log.debug("%s, %i days"%(_format_date(date), days))
                     timeline[days] = date
                 country_timelines[country] = timeline
         else:
@@ -1169,6 +1294,12 @@ class CoronaBaseData:
         domain.sort()
         
         return domain, country_timelines
+             
+def _format_date(d):
+    return time.strftime("%Y/%m/%d", time.localtime(d))
+             
+def _get_data_source_name(data_source):
+    return DATA_SOURCE_TXT.get(data_source, "UNK_%s"%(data_source))
              
 def main():
     init_logger()
