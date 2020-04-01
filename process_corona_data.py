@@ -43,12 +43,14 @@ _known_formats = (FORMAT_CSV,
 
 TIMELINE_ORIGINAL = "original"
 TIMELINE_TOTAL_CONFIRMED_CASES = "total_confirmed_cases"
+TIMELINE_ACTIVE_CASES = "active_cases"
 TIMELINE_FIRST_100_CASES = "first_100_cases"
 TIMELINE_FIRST_CASE_PER_1M = "first_case_per_1m"
 TIMELINE_FIRST_CASE_PER_10K = "first_case_per_10k"
 TIMELINE_FIRST_CASE_PER_10M = "first_case_per_10m"
 _known_timelines = (TIMELINE_ORIGINAL,
                     TIMELINE_TOTAL_CONFIRMED_CASES,
+                    TIMELINE_ACTIVE_CASES,
                     TIMELINE_FIRST_100_CASES,
                     TIMELINE_FIRST_CASE_PER_10K,
                     TIMELINE_FIRST_CASE_PER_10M,
@@ -62,6 +64,7 @@ _timeline_needs_population = (TIMELINE_FIRST_100_CASES,
                               )
 
 _float_timelines = (TIMELINE_TOTAL_CONFIRMED_CASES,
+                    TIMELINE_ACTIVE_CASES,
                     TIMELINE_FIRST_100_CASES,
                     TIMELINE_FIRST_CASE_PER_10K,
                     TIMELINE_FIRST_CASE_PER_10M,
@@ -76,12 +79,15 @@ DATA_NEW_CASES = "new_cases"
 DATA_NEW_CASES_PER_1M = "new_cases_per_1m"
 DATA_TOTAL_DEATHS_PER_1M = "total_deaths_per_1m"
 DATA_TOTAL_DEATHS = "total_deaths"
+DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES = "total_deaths_per_1k_total_cases"
 DATA_NEW_DEATHS_PER_1M = "new_deaths_per_1m"
 DATA_NEW_DEATHS = "new_deaths"
 DATA_ACTIVE_CASES = "active_cases"
 DATA_ACTIVE_CASES_PER_1M = "active_cases_per_1m"
 DATA_NEW_DEATHS_PER_ACTIVE_CASES = "new_deaths_per_active_cases"
+DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_active_cases_from_1k_active_cases"
 DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases"
+DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases_from_1k_active_cases"
 _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_CASES_PER_10K,
                DATA_TOTAL_CASES_PER_10M,
@@ -89,16 +95,21 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_NEW_CASES,
                DATA_NEW_CASES_PER_1M,   
                DATA_TOTAL_DEATHS,
+               DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES,
                DATA_TOTAL_DEATHS_PER_1M,
                DATA_NEW_DEATHS,
                DATA_NEW_DEATHS_PER_1M,
                DATA_ACTIVE_CASES,
                DATA_ACTIVE_CASES_PER_1M,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES,
+               DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
+               DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,            
                )
 _data_requires_csd_source = (DATA_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_ACTIVE_CASES,
+                             DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
+                             DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,
                              DATA_ACTIVE_CASES_PER_1M,
                             )
@@ -112,7 +123,8 @@ _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M,
                                )
 
 _timeline_display_names = {TIMELINE_ORIGINAL:"Date",
-                           TIMELINE_TOTAL_CONFIRMED_CASES:"Total confirmed cases", 
+                           TIMELINE_TOTAL_CONFIRMED_CASES:"Total confirmed cases",
+                           TIMELINE_ACTIVE_CASES:"Active cases", 
                            TIMELINE_FIRST_100_CASES:"Days (0 -> First 100 total cases)",
                            TIMELINE_FIRST_CASE_PER_10K:"Days (0 -> First case per 10K habs)",
                            TIMELINE_FIRST_CASE_PER_10M:"Days (0 -> First case per 10M habs)",
@@ -126,10 +138,13 @@ _data_display_names = {DATA_TOTAL_CASES:"Total cases",
                        DATA_NEW_CASES:"New cases per day",
                        DATA_NEW_CASES_PER_1M:"New cases per day / 1M Habs",
                        DATA_TOTAL_DEATHS:"Total deaths",
+                       DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:"Total deaths / 1K total cases",
                        DATA_TOTAL_DEATHS_PER_1M:"Total deaths / 1M Habs",
                        DATA_NEW_DEATHS:"New deaths per day",
                        DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
                        DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
+                       DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(From 1K active cases)",
+                       DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(From 1K active cases)",
                        DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
                        DATA_ACTIVE_CASES:"Active Cases",
                        DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
@@ -152,9 +167,20 @@ PLOT_AXIS_FONT_SIZE = 8
 
 PLOT_STYLE_LINE = "line"
 PLOT_STYLE_MARKERS = "markers"
+PLOT_STYLE_LAST_ENTRY_BARS = "last_entry_bars"
+PLOT_STYLE_LAST_ENTRY_HBARS = "last_entry_hbars"
 _known_plot_styles = (PLOT_STYLE_LINE,
                       PLOT_STYLE_MARKERS,
+                      PLOT_STYLE_LAST_ENTRY_BARS,
+                      PLOT_STYLE_LAST_ENTRY_HBARS,
                       )
+_plot_styles_full_data_series = (PLOT_STYLE_LINE,
+                                 PLOT_STYLE_MARKERS,
+                                )
+_plot_styles_last_entry_data = (PLOT_STYLE_LAST_ENTRY_BARS,
+                                PLOT_STYLE_LAST_ENTRY_HBARS
+                               )
+ 
 
 PLOT_LINE_LEGEND_STYLE_STANDARD = "standard"
 PLOT_LINE_LEGEND_STYLE_EOL_MARKER = "end_of_line_marker"
@@ -197,7 +223,7 @@ _owid_corona_csv_required_cols = (OWID_CORONA_CSV_HDR_COUNTRY,
                              OWID_CORONA_CSV_HDR_TOTAL_DEATHS)
 
 OWID_CoronaDayEntry = collections.namedtuple("OWID_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
-CSD_CoronaDayEntry = collections.namedtuple("OWID_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "total_recovered", "new_recovered"))
+CSD_CoronaDayEntry = collections.namedtuple("CSD_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "total_recovered", "new_recovered"))
 
 CSD_CORONA_CSV_DIRECTORY = os.path.join(_my_path, "..", "COVID-19", "csse_covid_19_data", "csse_covid_19_time_series")
 CSD_CORONA_CSV_FILENAME_CONFIRMED = "time_series_covid19_confirmed_global.csv"
@@ -213,14 +239,20 @@ PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
 PLOT_EXTERNAL_BG_COLOR = "#384048"
 PLOT_GRID_COLOR = "#E0F0FF"
     
-_plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
-                     (1, 1,  5, 1),
-                     (2, 2,  4, 2),
-                     (1, 1,  2, 1),
-                     (1, 1,  1, 1),
-                     (2, 2,  2, 2),
-                     (4, 4,  4, 4),
-                     (8, 4,  8, 4),
+#_plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
+#                     (1, 1,  5, 1),
+#                     (2, 2,  4, 2),
+#                     (1, 1,  2, 1),
+#                     (1, 1,  1, 1),
+#                     (2, 2,  2, 2),
+#                     (4, 4,  4, 4),
+#                     (8, 4,  8, 4),
+#                     )
+_plot_line_styles = ((1, 2, 6, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
+                     (1, 2, 1, 2),
+                     (3, 2, 6, 2),
+                     (3, 3, 3, 3),
+                     #(8, 4, 8, 4),
                      )
 _plot_line_markers = (".",
                       "^",
@@ -308,8 +340,6 @@ class Report:
         
         self.filter_sigma = float(config_reader.get(section, "filter_sigma")) if config_reader.has_option(section, "filter_sigma") else None
         self.axis2_filter_sigma = float(config_reader.get(section, "axis2_filter_sigma")) if config_reader.has_option(section, "axis2_filter_sigma") else None
-        
-        
         
         self.sort_columns = config_reader.get(section, "sort_columns").strip()
         assert self.sort_columns in _known_sorts, "Unsupported sort_columns: %s"%(self.sort_columns)
@@ -795,12 +825,22 @@ class CoronaBaseData:
                                         data = self.data[country][actual_date].total_cases
                                     elif dt == DATA_TOTAL_DEATHS:
                                         data = self.data[country][actual_date].total_deaths
+                                    elif dt == DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:
+                                        data = self.data[country][actual_date].total_deaths / (self.data[country][actual_date].total_cases / 1000)
                                     elif dt == DATA_ACTIVE_CASES:
                                         data = self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered 
                                     elif dt == DATA_ACTIVE_CASES_PER_1M:
                                         data = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / (self.population[country] / 1000000)
                                     elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES:
                                         data = self.data[country][actual_date].new_deaths / (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
+                                    elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:
+                                        active_cases = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
+                                        if active_cases >= 1000:
+                                            data = self.data[country][actual_date].new_deaths / active_cases 
+                                    elif dt == DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:
+                                        active_cases = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
+                                        if active_cases >= 1000:
+                                            data = self.data[country][actual_date].new_deaths / (active_cases / 1000) 
                                     elif dt == DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:
                                         data = self.data[country][actual_date].new_deaths / ( (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / 1000)
                                     elif dt == DATA_NEW_DEATHS:
@@ -951,6 +991,9 @@ class CoronaBaseData:
         return result
         
     def write_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None):
+        if report.plot_style in _plot_styles_last_entry_data:
+            return self.write_last_entry_plot(report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None)
+        
         filename = report.filename
         timeline = report.timeline
         data_type = report.data_type
@@ -963,6 +1006,7 @@ class CoronaBaseData:
             ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
         
         for index, country in enumerate(selected_countries):
+            # Prepare X,Y data
             x = []
             y = []
             for date_index, adj_date in enumerate(date_domain):
@@ -1086,14 +1130,14 @@ class CoronaBaseData:
             #ax1.format_xdata = mdates.DateFormatter('%Y-%m-%d')
             formatter = mdates.DateFormatter("%y/%m/%d")
             ax1.xaxis.set_major_formatter(formatter)
-        elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
+        elif timeline in (TIMELINE_TOTAL_CONFIRMED_CASES, TIMELINE_ACTIVE_CASES):
             ax1.xaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
             
         ax1.grid(True, color=PLOT_GRID_COLOR)
         fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
         #plt.tight_layout()
         
-        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE)
+        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2)
         
         ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         if axis2_report_data != None:
@@ -1110,10 +1154,134 @@ class CoronaBaseData:
         log.info("Writting plot to file")
         plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
         
+    def write_last_entry_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None):
+        filename = report.filename
+        timeline = report.timeline
+        data_type = report.data_type
+        title = report.plot_title
+        
+        log.info("Creating last entry plot %s" % (filename, ))
+        fig, ax1 = plt.subplots()
+        
+        if axis2_report_data != None:
+            raise Exception("No second-axis support as of now")
+            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+        
+        # Prepare X,Y data
+        x_indexes = []
+        x_ticks = []
+        y = []
+        incremental_index = 0
+        for index, country in enumerate(selected_countries):
+            last_y = None
+            for date_index, adj_date in enumerate(date_domain):
+                data = report_data[date_index][country]
+                if data == None or \
+                    (data == 0): continue
+                
+                last_y = data
+            
+            if last_y == None:
+                log.warning("No final data for country %s, skipping"%(country))
+                continue
+            
+            x_indexes.append(incremental_index)
+            x_ticks.append(country)
+            y.append(last_y)
+            incremental_index += 1
+            #print(country, last_y)
+            
+        if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
+            plt.bar(x_indexes, y, zorder=3)
+            plt.xticks(x_indexes, x_ticks)
+            ax1.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 2, colors=PLOT_EXTERNAL_FONT_COLOR, which = 'both')
+            ax1.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 3, axis="x", rotation = 35)
+            ax1.grid(True, color=PLOT_GRID_COLOR, axis="y", zorder=-1)
+            ax1.set_yscale(report.plot_y_scale)
+        elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
+            plt.barh(x_indexes, y, zorder=3, align='center')
+            ax1.invert_yaxis()  # labels read top-to-bottom
+            plt.yticks(x_indexes, x_ticks)
+            #ax1.set_yticks(x_indexes)
+            #ax1.set_yticklabels(x_ticks)
+            ax1.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 3, colors=PLOT_EXTERNAL_FONT_COLOR, which = 'both')
+            ax1.grid(True, color=PLOT_GRID_COLOR, axis="x", zorder=-1)
+            ax1.set_xscale(report.plot_y_scale)
+        else:
+            raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
+                
+        
+        #if axis2_report_data != None:
+        #    ax2.set_yscale(report.axis2_plot_y_scale)
+        
+        # Title
+        if title != None:
+            txt = plt.suptitle(title, fontsize = 8, fontweight='bold')
+            plt.setp(txt, color=PLOT_EXTERNAL_FONT_COLOR)
+        # Sub-title
+        if report.plot_subtitle != None:
+            txt = plt.title(report.plot_subtitle, fontsize = 7)
+            plt.setp(txt, color=PLOT_EXTERNAL_FONT_COLOR)
+        
+        #if timeline in _timeline_display_names:
+        #    ax1.set_xlabel(_timeline_display_names.get(timeline), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+        #else:
+        #    log.warning("No label defined for timeline type %s"%(timeline, ))
+
+                
+        if report.data_type in _data_display_names:
+            if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
+                ax1.set_ylabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+            elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
+                ax1.set_xlabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+            else:
+                raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
+        else:
+            log.warning("No label defined for data type %s"%(report.data_type, ))
+    
+        if y_range != None:
+            ax1.set_ylim(y_range)
+        else:
+            ax1.set_ymargin(PLOT_DATA_MARGIN)
+            log.debug("Setting Y axis multiplier")
+        if axis2_report_data != None:
+            if axis2_y_range != None:
+                ax2.set_ylim(axis2_y_range)
+            else:
+                ax2.set_ymargin(PLOT_DATA_MARGIN)
+                log.debug("Setting Y2 axis multiplier")
+        
+        
+        fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
+        #plt.tight_layout()
+        
+        #ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2)
+        
+        if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
+            ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+        elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
+            ax1.xaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+        else:
+            raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
+        if axis2_report_data != None:
+            ax2.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+        
+        if report.sync_both_y_axis:
+            ax2.set_yticks(ax1.get_yticks())
+            ax2.set_ylim(ax1.get_ylim())
+        
+        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        
+        log.info("Writting plot to file")
+        plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        
     def format_axis_ticks(self, x, pos=None):
         def round_to_int(n):
-            if n%1 < 0.001:
-                return int(n)
+            n2 = n + 0.001
+            if n2%1 < 0.002:
+                return int(n2)
             return n
         
         if x >= 1000000: 
@@ -1217,6 +1385,8 @@ class CoronaBaseData:
             return "%i Days"%(date, )
         if timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
             return "%i Confirmed Cases"%(date,)
+        if timeline == TIMELINE_ACTIVE_CASES:
+            return "%i Active Cases"%(date,)
     
         raise Exception("Unsupported timeline: %s"%(timeline,))
         
@@ -1238,6 +1408,13 @@ class CoronaBaseData:
                 for index, date in enumerate(self.dates):
                     if date not in self.data[country] or self.data[country][date].total_cases == None: continue
                     timeline[self.data[country][date].total_cases] = date
+                country_timelines[country] = timeline
+        elif timeline == TIMELINE_ACTIVE_CASES:
+            for country in selected_countries:
+                timeline = {}
+                for index, date in enumerate(self.dates):
+                    if date not in self.data[country] or self.data[country][date].total_cases == None or self.data[country][date].total_recovered == None: continue
+                    timeline[self.data[country][date].total_cases - self.data[country][date].total_recovered] = date
                 country_timelines[country] = timeline
         elif timeline == TIMELINE_FIRST_100_CASES:
             # Lookup on each country when these got 100 cases or more
