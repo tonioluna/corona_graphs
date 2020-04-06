@@ -43,6 +43,7 @@ _known_formats = (FORMAT_CSV,
 
 TIMELINE_ORIGINAL = "original"
 TIMELINE_TOTAL_CONFIRMED_CASES = "total_confirmed_cases"
+TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M = "total_confirmed_cases_per_1m"
 TIMELINE_ACTIVE_CASES = "active_cases"
 TIMELINE_FIRST_100_CASES = "first_100_cases"
 TIMELINE_FIRST_CASE_PER_1M = "first_case_per_1m"
@@ -50,6 +51,7 @@ TIMELINE_FIRST_CASE_PER_10K = "first_case_per_10k"
 TIMELINE_FIRST_CASE_PER_10M = "first_case_per_10m"
 _known_timelines = (TIMELINE_ORIGINAL,
                     TIMELINE_TOTAL_CONFIRMED_CASES,
+                    TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M,
                     TIMELINE_ACTIVE_CASES,
                     TIMELINE_FIRST_100_CASES,
                     TIMELINE_FIRST_CASE_PER_10K,
@@ -64,12 +66,15 @@ _timeline_needs_population = (TIMELINE_FIRST_100_CASES,
                               )
 
 _float_timelines = (TIMELINE_TOTAL_CONFIRMED_CASES,
+                    TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M,
                     TIMELINE_ACTIVE_CASES,
                     TIMELINE_FIRST_100_CASES,
                     TIMELINE_FIRST_CASE_PER_10K,
                     TIMELINE_FIRST_CASE_PER_10M,
                     TIMELINE_FIRST_CASE_PER_1M)
 
+LEGEND_LOCATION_BEST = "best"
+_known_legend_locations = ("best","upper right","upper left","lower left","lower right","right","center left","center right","lower center","upper center","center")
  
 DATA_TOTAL_CASES_PER_1M = "total_cases_per_1m"
 DATA_TOTAL_CASES_PER_10K = "total_cases_per_10k"
@@ -88,6 +93,8 @@ DATA_NEW_DEATHS_PER_ACTIVE_CASES = "new_deaths_per_active_cases"
 DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_active_cases_from_1k_active_cases"
 DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases"
 DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases_from_1k_active_cases"
+DATA_TOTAL_RECOVERED_PER_1M = "total_recovered_per_1m"
+DATA_TOTAL_RECOVERED = "total_recovered"
 _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_CASES_PER_10K,
                DATA_TOTAL_CASES_PER_10M,
@@ -104,9 +111,13 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
-               DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,            
+               DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,
+               DATA_TOTAL_RECOVERED_PER_1M,
+               DATA_TOTAL_RECOVERED,
                )
 _data_requires_csd_source = (DATA_ACTIVE_CASES,
+                             DATA_TOTAL_RECOVERED_PER_1M,
+                             DATA_TOTAL_RECOVERED,
                              DATA_NEW_DEATHS_PER_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
@@ -120,10 +131,12 @@ _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M,
                                DATA_TOTAL_DEATHS_PER_1M,
                                DATA_NEW_DEATHS_PER_1M,
                                DATA_ACTIVE_CASES_PER_1M,
+                               DATA_TOTAL_RECOVERED_PER_1M,
                                )
 
 _timeline_display_names = {TIMELINE_ORIGINAL:"Date",
                            TIMELINE_TOTAL_CONFIRMED_CASES:"Total confirmed cases",
+                           TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:"Total confirmed cases / 1M Habs",
                            TIMELINE_ACTIVE_CASES:"Active cases", 
                            TIMELINE_FIRST_100_CASES:"Days (0 -> First 100 total cases)",
                            TIMELINE_FIRST_CASE_PER_10K:"Days (0 -> First case per 10K habs)",
@@ -148,6 +161,8 @@ _data_display_names = {DATA_TOTAL_CASES:"Total cases",
                        DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
                        DATA_ACTIVE_CASES:"Active Cases",
                        DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
+                       DATA_TOTAL_RECOVERED_PER_1M:"Recovered Cases / 1M Habs",
+                       DATA_TOTAL_RECOVERED:"Recovered Cases",
                        }
 
 FILTER_NONE = "none"
@@ -234,7 +249,8 @@ CSD_CORONA_CSV_HDR_COUNTRY = "Country/Region"
 CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$")
 
     
-PLOT_DATA_MARGIN = 0.04
+PLOT_DATA_MARGIN_LINEAR = 0.04
+PLOT_DATA_MARGIN_LOG = 0.4
 PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
 PLOT_EXTERNAL_BG_COLOR = "#384048"
 PLOT_GRID_COLOR = "#E0F0FF"
@@ -384,13 +400,16 @@ class Report:
         else:
             self.exclude_countries = None
             
-
+        self.legend_location = LEGEND_LOCATION_BEST if not config_reader.has_option(section, "legend_location") else config_reader.get(section, "legend_location").strip() 
+        assert self.legend_location in _known_legend_locations, "Invalid value for legend_location: %s"%(self.legend_location)
+        
         self.plot_style = PLOT_STYLE_LINE
         if config_reader.has_option(section, "plot_style"):
             self.plot_style = config_reader.get(section, "plot_style")
         assert self.plot_style in _known_plot_styles, "Invalid parameter plot_style: %s"%(self.plot_style, )
 
         self.plot_line_width = 0.75 if not config_reader.has_option(section, "plot_line_width") else float(config_reader.get(section, "plot_line_width"))
+        self.axis2_plot_line_width = 0.75 if not config_reader.has_option(section, "axis2_plot_line_width") else float(config_reader.get(section, "axis2_plot_line_width"))
         self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not config_reader.has_option(section, "plot_line_legend_style") else config_reader.get(section, "plot_line_legend_style")
         assert self.plot_line_legend_style in _known_plot_line_legend_styles, "Invalid style for plot_line_legend_style: %s"%(self.plot_line_legend_style)
          
@@ -431,28 +450,44 @@ class Report:
         self.sync_both_y_axis = False if not config_reader.has_option(section, "sync_both_y_axis") else strToBool(config_reader.get(section, "sync_both_y_axis"))
 
 class Parameters:
-    def __init__(self, filename):
-        assert os.path.isfile(filename)
-        self._filename = os.path.realpath(filename)
-        self._cfg_path = os.path.dirname(self._filename)
-        self._read()
+    def __init__(self, filenames):
+        self._filenames = [os.path.realpath(file) for file in filenames]
+        for file in self._filenames:
+         assert os.path.isfile(file)   
+        self.reports = []
+        index = 0
+        while True:
+            if index >= len(self._filenames): 
+                break
+            self._read(self._filenames[index])
+            index += 1
     
-    def _read(self):
+    def _read(self, filename):
         #parser = configparser.RawConfigParser()
         parser = configparser.ConfigParser()
-        log.debug("Reading parameters from %s"%(self._filename,))
+        log.debug("Reading parameters from %s"%(filename,))
         
-        #parser.read(self._filename)
-        with codecs.open(self._filename, "r", "utf8") as fh:
+        with codecs.open(filename, "r", "utf8") as fh:
             parser.read_file(fh)
         
-        self.reports = []
         for section in parser.sections():
             log.debug("Reading section %s"%(section, ))
             if section.startswith("report_"):
                 self.reports.append(Report(parser, section))
             elif section == "general":
-                self.report_dir = parser.get("general", 'report_dir').strip()
+                if parser.has_option("general", "report_dir"):
+                    self.report_dir = parser.get("general", 'report_dir').strip()
+                if parser.has_option("general", "include_files"):
+                    files = [s.strip() for s in parser.get("general", "include_files").split(",")]
+                    for file in files:
+                        if not os.path.isabs(file):
+                            file = os.path.join(os.path.dirname(filename), file)
+                        file = os.path.relpath(file)
+                        if file not in self._filenames:
+                            log.info("Including config file %s"%(file,))
+                            self._filenames.append(file)
+                        else:
+                            log.warning("Skipping already-included config file: %s"%(file, ))
             elif section == "population_name_translation":
                 self._read_pop_name_xlation(parser, section)
             elif section == "csd_country_translations":
@@ -831,6 +866,10 @@ class CoronaBaseData:
                                         data = self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered 
                                     elif dt == DATA_ACTIVE_CASES_PER_1M:
                                         data = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / (self.population[country] / 1000000)
+                                    elif dt == DATA_TOTAL_RECOVERED:
+                                        data = self.data[country][actual_date].total_recovered 
+                                    elif dt == DATA_TOTAL_RECOVERED_PER_1M:
+                                        data = self.data[country][actual_date].total_recovered / (self.population[country] / 1000000)
                                     elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES:
                                         data = self.data[country][actual_date].new_deaths / (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
                                     elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:
@@ -922,7 +961,7 @@ class CoronaBaseData:
                     if nyr[1] == None: 
                         nyr[1] = data_max
                         adjust_max = True
-                    y_range = self._set_range_margin(nyr, adjust_min, adjust_max)
+                    y_range = self._set_range_margin(nyr, adjust_min, adjust_max, report.plot_y_scale)
                 
                 axis2_y_range = None
                 if axis2_enabled:
@@ -938,7 +977,7 @@ class CoronaBaseData:
                         if nyr[1] == None: 
                             nyr[1] = axis2_data_max
                             adjust_max = True
-                        axis2_y_range = self._set_range_margin(nyr, adjust_min, adjust_max)
+                        axis2_y_range = self._set_range_margin(nyr, adjust_min, adjust_max, report.axis2_plot_y_scale)
                 
                 x_range = report.plot_x_range
                 if x_range != None:
@@ -952,7 +991,7 @@ class CoronaBaseData:
                     if nxr[1] == None: 
                         nxr[1] = max(date_domain)
                         adjust_max = True
-                    x_range = self._set_range_margin(nxr, adjust_min, adjust_max)
+                    x_range = self._set_range_margin(nxr, adjust_min, adjust_max, report.plot_x_scale)
                 
                 self.write_plot(report, date_domain, report_data, selected_countries, x_range, y_range, axis2_y_range = axis2_y_range, axis2_report_data = report_data_axis2)
             
@@ -982,9 +1021,9 @@ class CoronaBaseData:
                 row[country] = array[read_index]
                 read_index += 1
     
-    def _set_range_margin(self, rng, adjust_min, adjust_max):
+    def _set_range_margin(self, rng, adjust_min, adjust_max, axis_scale):
         log.debug("Pre-scale:  %s"%(repr(rng)))
-        delta = (rng[1] - rng[0]) * PLOT_DATA_MARGIN
+        delta = (rng[1] - rng[0]) * ( PLOT_DATA_MARGIN_LINEAR if axis_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
         result = ((rng[0] - delta) if adjust_min else rng[0],
                   (rng[1] + delta) if adjust_max else rng[1])
         log.debug("Post-scale: %s"%(repr(result)))
@@ -1042,7 +1081,7 @@ class CoronaBaseData:
                                  label = country if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_STANDARD else None, 
                                  linewidth = report.plot_line_width if country != "Mexico" else report.plot_line_width * 1.5)
                 if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_EOL_MARKER:
-                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[index % len(_plot_line_markers)], color=line.get_color(), zorder=2, s = (20 if country != "Mexico" else 100), label=country)
+                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if country != "Mexico" else 100), label=country)
                 line.set_dashes(_plot_line_styles[index % len(_plot_line_styles)])
             elif report.plot_style == PLOT_STYLE_MARKERS:
                 line, = ax1.plot(x, y, label=country, linewidth = 0.75 if country != "Mexico" else 1)
@@ -1053,7 +1092,8 @@ class CoronaBaseData:
                 raise Exception("Unsupported plot style: %s"%(report.plot_style, )) 
             
             if axis2_report_data != None:
-                line2, = ax2.plot(x2, y2, label=country, linewidth = 0.75 if country != "Mexico" else 1)
+                line2, = ax2.plot(x2, y2, 
+                                  linewidth = report.axis2_plot_line_width if country != "Mexico" else report.axis2_plot_line_width * 1.5)
                 if report.axis2_plot_style == PLOT_STYLE_LINE:
                     line2.set_dashes(_plot_line_styles[index % len(_plot_line_styles)])
                 elif report.axis2_plot_style == PLOT_STYLE_MARKERS:
@@ -1113,31 +1153,31 @@ class CoronaBaseData:
                 plt.xlim(x_range)
         else:
             log.debug("Setting X axis multiplier")
-            ax1.set_xmargin(PLOT_DATA_MARGIN)
+            ax1.set_xmargin(PLOT_DATA_MARGIN_LINEAR if report.plot_x_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
         if y_range != None:
             ax1.set_ylim(y_range)
         else:
-            ax1.set_ymargin(PLOT_DATA_MARGIN)
+            ax1.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
             log.debug("Setting Y axis multiplier")
         if axis2_report_data != None:
             if axis2_y_range != None:
                 ax2.set_ylim(axis2_y_range)
             else:
-                ax2.set_ymargin(PLOT_DATA_MARGIN)
+                ax2.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.axis2_plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
                 log.debug("Setting Y2 axis multiplier")
         
         if timeline in _date_timelines:
             #ax1.format_xdata = mdates.DateFormatter('%Y-%m-%d')
             formatter = mdates.DateFormatter("%y/%m/%d")
             ax1.xaxis.set_major_formatter(formatter)
-        elif timeline in (TIMELINE_TOTAL_CONFIRMED_CASES, TIMELINE_ACTIVE_CASES):
+        elif timeline in (TIMELINE_TOTAL_CONFIRMED_CASES, TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M, TIMELINE_ACTIVE_CASES):
             ax1.xaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
             
         ax1.grid(True, color=PLOT_GRID_COLOR)
         fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
         #plt.tight_layout()
         
-        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2)
+        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2, loc = report.legend_location)
         
         ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         if axis2_report_data != None:
@@ -1242,13 +1282,13 @@ class CoronaBaseData:
         if y_range != None:
             ax1.set_ylim(y_range)
         else:
-            ax1.set_ymargin(PLOT_DATA_MARGIN)
+            ax1.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
             log.debug("Setting Y axis multiplier")
         if axis2_report_data != None:
             if axis2_y_range != None:
                 ax2.set_ylim(axis2_y_range)
             else:
-                ax2.set_ymargin(PLOT_DATA_MARGIN)
+                ax2.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.axis2_plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
                 log.debug("Setting Y2 axis multiplier")
         
         
@@ -1385,6 +1425,8 @@ class CoronaBaseData:
             return "%i Days"%(date, )
         if timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
             return "%i Confirmed Cases"%(date,)
+        if timeline == TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:
+            return "%i Confirmed Cases / 1M Habs"%(date,)
         if timeline == TIMELINE_ACTIVE_CASES:
             return "%i Active Cases"%(date,)
     
@@ -1408,6 +1450,13 @@ class CoronaBaseData:
                 for index, date in enumerate(self.dates):
                     if date not in self.data[country] or self.data[country][date].total_cases == None: continue
                     timeline[self.data[country][date].total_cases] = date
+                country_timelines[country] = timeline
+        elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:
+            for country in selected_countries:
+                timeline = {}
+                for index, date in enumerate(self.dates):
+                    if date not in self.data[country] or self.data[country][date].total_cases == None: continue
+                    timeline[self.data[country][date].total_cases / (self.population[country] / 1000000)] = date
                 country_timelines[country] = timeline
         elif timeline == TIMELINE_ACTIVE_CASES:
             for country in selected_countries:
@@ -1477,13 +1526,30 @@ def _format_date(d):
              
 def _get_data_source_name(data_source):
     return DATA_SOURCE_TXT.get(data_source, "UNK_%s"%(data_source))
+        
+def get_args():
+    config_files = []
+    
+    for arg in sys.argv[1:]:
+        if os.path.splitext(arg)[1].lower() == ".ini":
+            config_files.append(arg)
+    
+    if len(config_files) == 0:
+        log.info("Using default config file")
+        config_files.append(CONFIG_FILE)
+    
+    for i in range(0, len(config_files)):
+        config_files[i] = os.path.abspath(config_files[i])
+    
+    return config_files
              
 def main():
     init_logger()
     
     try:
-        config_file = os.path.abspath(CONFIG_FILE)
-        config = Parameters(filename = config_file)
+        config_files = get_args()
+        
+        config = Parameters(filenames = config_files)
         
         population_data = read_population_data(population_name_xlation = config.population_name_xlation)
         
@@ -1513,7 +1579,8 @@ def main():
                 
             os.chdir(dir)
         
-        shutil.copy(config_file, os.path.join(dir, os.path.basename(config_file)))
+        for config_file in config_files:
+            shutil.copy(config_file, os.path.join(dir, os.path.basename(config_file)))
         
         for report in config.reports:
             corona_data.export(report)
