@@ -248,6 +248,8 @@ CSD_CORONA_CSV_HDR_STATE = "Province/State"
 CSD_CORONA_CSV_HDR_COUNTRY = "Country/Region"
 CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$")
 
+REPLACEMENTS_REGEX = re.compile("\@[a-zA-Z0-9_]+\@")
+
     
 PLOT_DATA_MARGIN_LINEAR = 0.04
 PLOT_DATA_MARGIN_LOG = 0.4
@@ -332,48 +334,48 @@ class LoggerWrapper:
 
 class Report:
     
-    def __init__(self, cfg_reader, section):
-        self._read(cfg_reader, section)
+    def __init__(self, params, section):
+        self._read(params, section)
     
     def _read(self,
-              config_reader,
+              params,
               section):
         self.ID = section[7:]
         
-        self.data_type = config_reader.get(section, "data_type").strip()
+        self.data_type = params._get_option(section, "data_type").strip()
         assert self.data_type in _known_data, "Unsupported data type: %s"%(self.data_type)
 
-        self.timeline = config_reader.get(section, "timeline").strip()
+        self.timeline = params._get_option(section, "timeline").strip()
         assert self.timeline in _known_timelines, "Unsupported timeline: %s"%(self.timeline)
 
-        self.formats = [s.strip() for s in config_reader.get(section, "formats").split(",")]
+        self.formats = [s.strip() for s in params._get_option(section, "formats").split(",")]
         for format in self.formats:
             assert format in _known_formats, "Unsupported format: %s"%(format)
         
-        self.filename = config_reader.get(section, "filename").strip() if config_reader.has_option(section, "filename") else "@AUTO"
+        self.filename = params._get_option(section, "filename").strip() if params._curr_parser().has_option(section, "filename") else "@AUTO"
         if self.filename == "@AUTO":
             self.filename = self.ID
         
-        self.filter_sigma = float(config_reader.get(section, "filter_sigma")) if config_reader.has_option(section, "filter_sigma") else None
-        self.axis2_filter_sigma = float(config_reader.get(section, "axis2_filter_sigma")) if config_reader.has_option(section, "axis2_filter_sigma") else None
+        self.filter_sigma = float(params._get_option(section, "filter_sigma")) if params._curr_parser().has_option(section, "filter_sigma") else None
+        self.axis2_filter_sigma = float(params._get_option(section, "axis2_filter_sigma")) if params._curr_parser().has_option(section, "axis2_filter_sigma") else None
         
-        self.sort_columns = config_reader.get(section, "sort_columns").strip()
+        self.sort_columns = params._get_option(section, "sort_columns").strip()
         assert self.sort_columns in _known_sorts, "Unsupported sort_columns: %s"%(self.sort_columns)
         
-        self.filter = config_reader.get(section, "filter").strip()
+        self.filter = params._get_option(section, "filter").strip()
         assert self.filter in _known_filters, "Unsupported filter type: %s"%(self.filter)
         
         self.filter_value = None
         if self.filter in _filters_with_int_arg or self.filter in _filters_with_string_list:
-            arg = config_reader.get(section, "filter_value").strip()
+            arg = params._get_option(section, "filter_value").strip()
             if self.filter in _filters_with_int_arg:
                 arg = int(arg)
             elif self.filter in _filters_with_string_list:
                 arg = [s.strip() for s in arg.split(",")]
             self.filter_value = arg
         
-        if config_reader.has_option(section, "plot_x_range"):
-            rng = [s.strip() for s in config_reader.get(section, "plot_x_range").strip().split(",")]
+        if params._curr_parser().has_option(section, "plot_x_range"):
+            rng = [s.strip() for s in params._get_option(section, "plot_x_range").strip().split(",")]
             assert len(rng) == 2, "plot_x_range must contain 2 items, not %i"%(len(rng))
             if self.timeline in _date_timelines:
                 self.plot_x_range = [(time.mktime(time.strptime(d, "%y/%m/%d")) if d != "" else None) for d in rng]
@@ -384,70 +386,70 @@ class Report:
         else:
             self.plot_x_range = None
             
-        if config_reader.has_option(section, "plot_y_range"):
-            rng = [s.strip() for s in config_reader.get(section, "plot_y_range").strip().split(",")]
+        if params._curr_parser().has_option(section, "plot_y_range"):
+            rng = [s.strip() for s in params._get_option(section, "plot_y_range").strip().split(",")]
             self.plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.plot_y_range = None
         
-        self.plot_title = None if not config_reader.has_option(section, "plot_title") else config_reader.get(section, "plot_title")
-        self.plot_subtitle = None if not config_reader.has_option(section, "plot_subtitle") else config_reader.get(section, "plot_subtitle").replace("\\n","\n")
+        self.plot_title = None if not params._curr_parser().has_option(section, "plot_title") else params._get_option(section, "plot_title")
+        self.plot_subtitle = None if not params._curr_parser().has_option(section, "plot_subtitle") else params._get_option(section, "plot_subtitle").replace("\\n","\n")
         
-        if config_reader.has_option(section, "exclude_countries"):
-            exclude_countries = config_reader.get(section, "exclude_countries")
+        if params._curr_parser().has_option(section, "exclude_countries"):
+            exclude_countries = params._get_option(section, "exclude_countries")
             exclude_countries = [s.strip() for s in exclude_countries.split(',')]
             self.exclude_countries = exclude_countries
         else:
             self.exclude_countries = None
             
-        self.legend_location = LEGEND_LOCATION_BEST if not config_reader.has_option(section, "legend_location") else config_reader.get(section, "legend_location").strip() 
+        self.legend_location = LEGEND_LOCATION_BEST if not params._curr_parser().has_option(section, "legend_location") else params._get_option(section, "legend_location").strip() 
         assert self.legend_location in _known_legend_locations, "Invalid value for legend_location: %s"%(self.legend_location)
         
         self.plot_style = PLOT_STYLE_LINE
-        if config_reader.has_option(section, "plot_style"):
-            self.plot_style = config_reader.get(section, "plot_style")
+        if params._curr_parser().has_option(section, "plot_style"):
+            self.plot_style = params._get_option(section, "plot_style")
         assert self.plot_style in _known_plot_styles, "Invalid parameter plot_style: %s"%(self.plot_style, )
 
-        self.plot_line_width = 0.75 if not config_reader.has_option(section, "plot_line_width") else float(config_reader.get(section, "plot_line_width"))
-        self.axis2_plot_line_width = 0.75 if not config_reader.has_option(section, "axis2_plot_line_width") else float(config_reader.get(section, "axis2_plot_line_width"))
-        self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not config_reader.has_option(section, "plot_line_legend_style") else config_reader.get(section, "plot_line_legend_style")
+        self.plot_line_width = 0.75 if not params._curr_parser().has_option(section, "plot_line_width") else float(params._get_option(section, "plot_line_width"))
+        self.axis2_plot_line_width = 0.75 if not params._curr_parser().has_option(section, "axis2_plot_line_width") else float(params._get_option(section, "axis2_plot_line_width"))
+        self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not params._curr_parser().has_option(section, "plot_line_legend_style") else params._get_option(section, "plot_line_legend_style")
         assert self.plot_line_legend_style in _known_plot_line_legend_styles, "Invalid style for plot_line_legend_style: %s"%(self.plot_line_legend_style)
          
                 
         self.plot_y_scale = PLOT_SCALE_LINEAR
-        if config_reader.has_option(section, "plot_y_scale"):
-            self.plot_y_scale = config_reader.get(section, "plot_y_scale")
+        if params._curr_parser().has_option(section, "plot_y_scale"):
+            self.plot_y_scale = params._get_option(section, "plot_y_scale")
         assert self.plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.plot_y_scale, )
         
         self.plot_x_scale = PLOT_SCALE_LINEAR
-        if config_reader.has_option(section, "plot_x_scale"):
-            self.plot_x_scale = config_reader.get(section, "plot_y_scale")
+        if params._curr_parser().has_option(section, "plot_x_scale"):
+            self.plot_x_scale = params._get_option(section, "plot_y_scale")
         assert self.plot_x_scale in _known_plot_scales, "Invalid parameter plot_x_scale: %s"%(self.plot_x_scale, )
         
         
         # AXIS 2
         self.axis2_data_type = None
-        if config_reader.has_option(section, "axis2_data_type"):
-            self.axis2_data_type = config_reader.get(section, "axis2_data_type").strip()
+        if params._curr_parser().has_option(section, "axis2_data_type"):
+            self.axis2_data_type = params._get_option(section, "axis2_data_type").strip()
             assert self.axis2_data_type in _known_data, "Unsupported axis2 data type: %s"%(self.axis2_data_type)
 
-        if config_reader.has_option(section, "axis2_plot_y_range"):
-            rng = [s.strip() for s in config_reader.get(section, "axis2_plot_y_range").strip().split(",")]
+        if params._curr_parser().has_option(section, "axis2_plot_y_range"):
+            rng = [s.strip() for s in params._get_option(section, "axis2_plot_y_range").strip().split(",")]
             self.axis2_plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.axis2_plot_y_range = None
         
         self.axis2_plot_style = PLOT_STYLE_LINE
-        if config_reader.has_option(section, "axis2_plot_style"):
-            self.axis2_plot_style = config_reader.get(section, "axis2_plot_style")
+        if params._curr_parser().has_option(section, "axis2_plot_style"):
+            self.axis2_plot_style = params._get_option(section, "axis2_plot_style")
         assert self.axis2_plot_style in _known_plot_styles, "Invalid parameter axis2_plot_style: %s"%(self.axis2_plot_style, )
                 
         self.axis2_plot_y_scale = PLOT_SCALE_LINEAR
-        if config_reader.has_option(section, "axis2_plot_y_scale"):
-            self.axis2_plot_y_scale = config_reader.get(section, "axis2_plot_y_scale")
+        if params._curr_parser().has_option(section, "axis2_plot_y_scale"):
+            self.axis2_plot_y_scale = params._get_option(section, "axis2_plot_y_scale")
         assert self.axis2_plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.axis2_plot_y_scale, )
         
-        self.sync_both_y_axis = False if not config_reader.has_option(section, "sync_both_y_axis") else strToBool(config_reader.get(section, "sync_both_y_axis"))
+        self.sync_both_y_axis = False if not params._curr_parser().has_option(section, "sync_both_y_axis") else strToBool(params._get_option(section, "sync_both_y_axis"))
 
 class Parameters:
     def __init__(self, filenames):
@@ -456,62 +458,101 @@ class Parameters:
          assert os.path.isfile(file)   
         self.reports = []
         index = 0
+        self._parsers = []
+        self._replacements = {}
         while True:
             if index >= len(self._filenames): 
                 break
-            self._read(self._filenames[index])
+            self._read_file(self._filenames[index])
             index += 1
     
-    def _read(self, filename):
+    def _read_general_options(self, dir):
+        # First read the general section so the includes are processed first
+        if self._curr_parser().has_option("general", "report_dir"):
+            self.report_dir = self._get_option("general", 'report_dir').strip()
+        if self._curr_parser().has_option("general", "include_files"):
+            files = [s.strip() for s in self._get_option("general", "include_files").split(",")]
+            print(repr(files))
+            for file in files:
+                if not os.path.isabs(file):
+                    file = os.path.join(dir, file)
+                file = os.path.relpath(file)
+                if file not in self._filenames:
+                    log.info("Including config file %s"%(file,))
+                    #self._filenames.append(file)
+                    self._read_file(file)
+                else:
+                    log.warning("Skipping already-included config file: %s"%(file, ))
+    
+    def _read_replacements(self):
+        if not self._curr_parser().has_section("replacements"):
+            return
+        
+        for option in self._curr_parser().options("replacements"):
+            self._replacements[option] = self._curr_parser().get("replacements", option).strip()
+        
+    def _curr_parser(self):
+        return self._parsers[-1]
+        
+    def _get_option(self, section, option):
+        val = self._curr_parser().get(section, option).strip()
+        log.debug("%s.%s -> %s"%(section, option, val))
+        for rep in REPLACEMENTS_REGEX.findall(val):
+            rep_name = rep[1:-1]
+            if not rep_name in self._replacements:
+                raise Exception("Replacement '%s' from %s.%s (at %s) does not exist"%(rep_name, section, option, self._curr_parser()._filename))
+            new_val = self._replacements[rep_name]
+            val = val.replace(rep, new_val)
+        log.debug("Final val: %s"%(val,))
+        return val
+    
+    def _read_file(self, filename):
         #parser = configparser.RawConfigParser()
         parser = configparser.ConfigParser()
         log.debug("Reading parameters from %s"%(filename,))
         
         with codecs.open(filename, "r", "utf8") as fh:
             parser.read_file(fh)
+            parser._filename = filename
         
-        for section in parser.sections():
+        self._parsers.append(parser)
+        
+        # If available on this file, read replacements
+        self._read_replacements()
+        self._read_general_options(os.path.dirname(filename))
+        
+        for section in self._curr_parser().sections():
             log.debug("Reading section %s"%(section, ))
             if section.startswith("report_"):
-                self.reports.append(Report(parser, section))
+                self.reports.append(Report(self, section))
             elif section == "general":
-                if parser.has_option("general", "report_dir"):
-                    self.report_dir = parser.get("general", 'report_dir').strip()
-                if parser.has_option("general", "include_files"):
-                    files = [s.strip() for s in parser.get("general", "include_files").split(",")]
-                    for file in files:
-                        if not os.path.isabs(file):
-                            file = os.path.join(os.path.dirname(filename), file)
-                        file = os.path.relpath(file)
-                        if file not in self._filenames:
-                            log.info("Including config file %s"%(file,))
-                            self._filenames.append(file)
-                        else:
-                            log.warning("Skipping already-included config file: %s"%(file, ))
+                pass
             elif section == "population_name_translation":
-                self._read_pop_name_xlation(parser, section)
+                self._read_pop_name_xlation(section)
             elif section == "csd_country_translations":
-                self._read_csd_country_xlation(parser, section)
+                self._read_csd_country_xlation(section)
             else:
                 log.warning("Don't know how to read section %s"%(repr(section),))
         
-    def _read_pop_name_xlation(self, parser, section):
+        self._parsers.pop()
+        
+    def _read_pop_name_xlation(self, section):
         self.population_name_xlation = {}
-        v = parser.get(section, "names")
+        v = self._get_option(section, "names")
         v = [s.strip() for s in v.split("\n")]
         for line in v:
             k, v = [s.strip() for s in line.split(":")]
             self.population_name_xlation[k] = v
 
-    def _read_csd_country_xlation(self, parser, section):
+    def _read_csd_country_xlation(self, section):
         self.csd_country_xlation = {}
         self.csd_state_xlation = {}
-        v = parser.get(section, "country_translations")
+        v = self._get_option(section, "country_translations")
         v = [s.strip() for s in v.split("\n")]
         for line in v:
             k, v = [s.strip() for s in line.split(":")]
             self.csd_country_xlation[k] = v
-        v = parser.get(section, "state_translations")
+        v = self._get_option(section, "state_translations")
         v = [s.strip() for s in v.split("\n")]
         for line in v:
             k, v = [s.strip() for s in line.split(":")]
@@ -1535,7 +1576,7 @@ def get_args():
             config_files.append(arg)
     
     if len(config_files) == 0:
-        log.info("Using default config file")
+        log.warning("Using default config file: %s"%(CONFIG_FILE, ))
         config_files.append(CONFIG_FILE)
     
     for i in range(0, len(config_files)):
