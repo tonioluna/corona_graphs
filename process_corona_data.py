@@ -257,6 +257,9 @@ PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
 PLOT_EXTERNAL_BG_COLOR = "#384048"
 PLOT_GRID_COLOR = "#E0F0FF"
     
+SEQUENCE_DATE_INCREMENTAL = "date_incremental"
+_known_sequence_types = (SEQUENCE_DATE_INCREMENTAL,)
+    
 #_plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
 #                     (1, 1,  5, 1),
 #                     (2, 2,  4, 2),
@@ -341,6 +344,8 @@ class Report:
               params,
               section):
         self.ID = section[7:]
+        
+        self.filename_postfix = None
         
         self.data_type = params._get_option(section, "data_type").strip()
         assert self.data_type in _known_data, "Unsupported data type: %s"%(self.data_type)
@@ -450,7 +455,32 @@ class Report:
         assert self.axis2_plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.axis2_plot_y_scale, )
         
         self.sync_both_y_axis = False if not params._curr_parser().has_option(section, "sync_both_y_axis") else strToBool(params._get_option(section, "sync_both_y_axis"))
-
+        
+        self.sequence_do_export = False if not params._curr_parser().has_option(section, "sequence_do_export") else strToBool(params._get_option(section, "sequence_do_export"))
+        if self.sequence_do_export:
+            self.sequence_type = params._get_option(section, "sequence_type").strip()
+            assert self.sequence_type in _known_sequence_types, "Unsupported sequence_type: %s"%(self.sequence_type)
+            
+            self.sequence_range = params._get_option(section, "sequence_range").strip()
+            if self.sequence_type == SEQUENCE_DATE_INCREMENTAL:
+                self.sequence_range = [RelativeDate(s.strip()) for s in self.sequence_range.split(",")]
+                assert len(self.sequence_range) == 2, "sequence_range must be len 2, not %i"%(len(self.sequence_range))
+            
+            self.sequence_clone_last_frame = None if not params._curr_parser().has_option(section, "sequence_clone_last_frame") else int(params._get_option(section, "sequence_clone_last_frame"))
+            
+            self.sequence_do_postprocess = False if not params._curr_parser().has_option(section, "sequence_do_postprocess") else strToBool(params._get_option(section, "sequence_do_postprocess"))
+            if self.sequence_do_postprocess:
+                self.sequence_postprocess_command = params._get_option(section, "sequence_postprocess_command").strip()
+        
+class RelativeDate:
+    def __init__(self, v):
+        self._rel_date = None
+        self._real_date = None
+        if re.match("^\-{0,1}\d+$", v):
+            self._rel_date = int(v)
+        else:
+            self._real_date = miau
+        
 class Parameters:
     def __init__(self, filenames):
         self._filenames = [os.path.realpath(file) for file in filenames]
@@ -626,6 +656,9 @@ class CoronaBaseData:
         self.csv_filename = csv_filename
         self.data_source = data_source
         self.config_file = config_file
+        
+        self.date_limit_min = None
+        self.date_limit_top = None
         
         self.population = None
         if self.data_source == DATA_SOURCE_OURWORLDINDATA:
@@ -833,10 +866,52 @@ class CoronaBaseData:
             else:
                 self.population[country] = pop_data[country]
     
-    def export(self,
-               report):
+    def export(self, report):
+        if not report.sequence_do_export:
+            _country_label_order = None
+            self._export(report)
+        else:
+            if report.sequence_type == SEQUENCE_DATE_INCREMENTAL:
+                # Calculate the range to go over
+                self._country_label_order = []
+                for index, date in enumerate(self.dates):
+                    if index == 0: continue
+                    self.date_limit_min = None
+                    self.date_limit_top = date
+                    report.filename_postfix = ".frame_%03i"%(index,)
+                    props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
+                    date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
+                    filename = self._export(report, plot_args = dict(extra_labels = [date_legend]))
+                    
+                if report.sequence_clone_last_frame != None:
+                    log.info("Copying last frame %s %i times"%(filename, report.sequence_clone_last_frame))
+                    for i in range(0, report.sequence_clone_last_frame):
+                        new_file = filename.replace(report.filename_postfix, ".frame_%03i"%(len(self.dates) + i))
+                        shutil.copy(src = filename, dst = new_file)
+    
+                if report.sequence_do_postprocess:
+                    cmd = report.sequence_postprocess_command
+                    cmd = cmd.replace("#FILENAME_WILDCARD#", os.path.basename(filename.replace(report.filename_postfix, ".frame_%03d")))
+                    cmd = cmd.replace("#REPORT_NAME#", report.ID)
+                    cwd = os.getcwd()
+                    try:
+                        d = os.path.dirname(filename)
+                        log.info("Post-processing sequence at %s with command %s"%(d, cmd))
+                        os.chdir(d)
+                        ec = os.system(cmd)
+                        if ec != 0:
+                            log.error("Failed to prostprocess, exit code %i"%(ec,))
+                        else:
+                            log.info("Sequence postprocessing finished ok")
+                    finally:
+                        os.chdir(cwd)
+                    
+                    
+    def _export(self,
+               report,
+               plot_args = {}):
         log.info("-"*100)
-        log.info("Runnning report %s"%(report.ID, ))
+        log.info("Running report %s%s"%(report.ID, "" if report.filename_postfix == None else report.filename_postfix))
         log.debug("    Report file: %s"%(report.filename, ))
         log.debug("   Save formats: %s"%(repr(report.formats), ))
         log.debug("       Timeline: %s"%(report.timeline, ))
@@ -1034,7 +1109,7 @@ class CoronaBaseData:
                         adjust_max = True
                     x_range = self._set_range_margin(nxr, adjust_min, adjust_max, report.plot_x_scale)
                 
-                self.write_plot(report, date_domain, report_data, selected_countries, x_range, y_range, axis2_y_range = axis2_y_range, axis2_report_data = report_data_axis2)
+                return self.write_plot(report, date_domain, report_data, selected_countries, x_range, y_range, axis2_y_range = axis2_y_range, axis2_report_data = report_data_axis2, **plot_args)
             
         except Exception as ex:
             log.error("Failed to export data to report %s: %s"%(report.filename, ex))
@@ -1070,22 +1145,40 @@ class CoronaBaseData:
         log.debug("Post-scale: %s"%(repr(result)))
         return result
         
-    def write_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None):
+    def write_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None, extra_labels = None):
         if report.plot_style in _plot_styles_last_entry_data:
             return self.write_last_entry_plot(report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None)
         
-        filename = report.filename
+        if report.filename_postfix == None:
+            fname = report.filename + ".png"
+        else:
+            fname = report.filename + report.filename_postfix + ".png"
+        fname = os.path.abspath(fname)
+        
         timeline = report.timeline
         data_type = report.data_type
         title = report.plot_title
         
-        log.info("Creating plot %s" % (filename, ))
+        log.info("Creating plot %s" % (fname, ))
         fig, ax1 = plt.subplots()
         
         if axis2_report_data != None:
             ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
         
-        for index, country in enumerate(selected_countries):
+        countries = []
+        if self._country_label_order == None:
+            countries.extend(selected_countries)
+        else:
+            for c in self._country_label_order:
+                if c in selected_countries:
+                    countries.append(c)
+            for c in selected_countries:
+                if c not in countries:
+                    countries.append(c)
+        
+        # non-skipped country index
+        nsc_index = -1
+        for index, country in enumerate(countries):
             # Prepare X,Y data
             x = []
             y = []
@@ -1100,6 +1193,12 @@ class CoronaBaseData:
                 else:
                     x.append(adj_date)
                 y.append(data)
+            
+            #log.debug("%s, %s:%s"%(country, len(x), len(y)))
+            if len(y) == 0: continue
+            if self._country_label_order != None and country not in self._country_label_order:
+                self._country_label_order.append(country)
+            nsc_index += 1
             
             if axis2_report_data != None:
                 x2 = []
@@ -1122,13 +1221,13 @@ class CoronaBaseData:
                                  label = country if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_STANDARD else None, 
                                  linewidth = report.plot_line_width if country != "Mexico" else report.plot_line_width * 1.5)
                 if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_EOL_MARKER:
-                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if country != "Mexico" else 100), label=country)
-                line.set_dashes(_plot_line_styles[index % len(_plot_line_styles)])
+                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[nsc_index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if country != "Mexico" else 40), label=country)
+                line.set_dashes(_plot_line_styles[nsc_index % len(_plot_line_styles)])
             elif report.plot_style == PLOT_STYLE_MARKERS:
                 line, = ax1.plot(x, y, label=country, linewidth = 0.75 if country != "Mexico" else 1)
                 line.set_dashes((0, 1))
-                line.set_marker(_plot_line_markers[index % len(_plot_line_markers)])
-                line.set_markersize(3 if country != "Mexico" else 4.5)
+                line.set_marker(_plot_line_markers[nsc_index % len(_plot_line_markers)])
+                line.set_markersize(3 if country != "Mexico" else 4.2)
             else:
                 raise Exception("Unsupported plot style: %s"%(report.plot_style, )) 
             
@@ -1136,11 +1235,11 @@ class CoronaBaseData:
                 line2, = ax2.plot(x2, y2, 
                                   linewidth = report.axis2_plot_line_width if country != "Mexico" else report.axis2_plot_line_width * 1.5)
                 if report.axis2_plot_style == PLOT_STYLE_LINE:
-                    line2.set_dashes(_plot_line_styles[index % len(_plot_line_styles)])
+                    line2.set_dashes(_plot_line_styles[nsc_index % len(_plot_line_styles)])
                 elif report.axis2_plot_style == PLOT_STYLE_MARKERS:
                     line2.set_dashes((0, 1))
-                    line2.set_marker(_plot_line_markers[index % len(_plot_line_markers)])
-                    line2.set_markersize(3 if country != "Mexico" else 4.5)
+                    line2.set_marker(_plot_line_markers[nsc_index % len(_plot_line_markers)])
+                    line2.set_markersize(3 if country != "Mexico" else 4.2)
                 else:
                     raise Exception("Unsupported plot style for axis2: %s"%(report.axis2_plot_style, ))
                 
@@ -1232,16 +1331,27 @@ class CoronaBaseData:
         plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
+        if extra_labels != None:
+            for label in extra_labels:
+                plt.gcf().text(**label)
+        
         log.info("Writting plot to file")
-        plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.savefig(fname = fname, dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.close()
+        return fname
         
     def write_last_entry_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None):
-        filename = report.filename
+        if report.filename_postfix == None:
+            fname = report.filename + ".png"
+        else:
+            fname = report.filename + report.filename_postfix + ".png"
+        fname = os.path.abspath(fname)
+        
         timeline = report.timeline
         data_type = report.data_type
         title = report.plot_title
         
-        log.info("Creating last entry plot %s" % (filename, ))
+        log.info("Creating last entry plot %s" % (fname, ))
         fig, ax1 = plt.subplots()
         
         if axis2_report_data != None:
@@ -1356,7 +1466,9 @@ class CoronaBaseData:
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
-        plt.savefig(fname = filename + ".png", dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.savefig(fname = fname, dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.close()
+        return fname
         
     def format_axis_ticks(self, x, pos=None):
         def round_to_int(n):
@@ -1473,6 +1585,25 @@ class CoronaBaseData:
     
         raise Exception("Unsupported timeline: %s"%(timeline,))
         
+    def get_limited_dates(self):
+        if self.date_limit_min == None and self.date_limit_top == None: 
+            return self.dates
+        
+        dates = []
+        s = 0
+        for date in self.dates:
+            if s == 0:
+                if self.date_limit_min == None or date >= self.date_limit_min:
+                    s = 1
+            
+            if s == 1:
+                dates.append(date)
+            
+                if self.date_limit_top != None and date >= self.date_limit_top:
+                    break
+        
+        return dates
+        
     def _get_country_timelines(self, 
                                timeline,
                                selected_countries):
@@ -1480,7 +1611,7 @@ class CoronaBaseData:
         
         if timeline == TIMELINE_ORIGINAL:
             base_timeline = {}
-            for date in self.dates:
+            for date in self.get_limited_dates():
                 # The key on the dictionary represents the adjusted date
                 base_timeline[date] = date
             for country in selected_countries:
@@ -1488,21 +1619,21 @@ class CoronaBaseData:
         elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES:
             for country in selected_countries:
                 timeline = {}
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     if date not in self.data[country] or self.data[country][date].total_cases == None: continue
                     timeline[self.data[country][date].total_cases] = date
                 country_timelines[country] = timeline
         elif timeline == TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:
             for country in selected_countries:
                 timeline = {}
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     if date not in self.data[country] or self.data[country][date].total_cases == None: continue
                     timeline[self.data[country][date].total_cases / (self.population[country] / 1000000)] = date
                 country_timelines[country] = timeline
         elif timeline == TIMELINE_ACTIVE_CASES:
             for country in selected_countries:
                 timeline = {}
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     if date not in self.data[country] or self.data[country][date].total_cases == None or self.data[country][date].total_recovered == None: continue
                     timeline[self.data[country][date].total_cases - self.data[country][date].total_recovered] = date
                 country_timelines[country] = timeline
@@ -1511,14 +1642,14 @@ class CoronaBaseData:
             for country in selected_countries:
                 log.debug("Country timeline for first 100 cases: %s"%(country, ))
                 _100_cases_index = None
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     if date in self.data[country] and self.data[country][date].total_cases >= 100:
                         _100_cases_index = index
                         break
                 if _100_cases_index == None:
                     continue
                 timeline = {}
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     days = index - _100_cases_index
                     log.debug("%s, %i days"%(_format_date(date), days))
                     timeline[days] = date
@@ -1536,7 +1667,7 @@ class CoronaBaseData:
             for country in selected_countries:
                 log.debug("Country timeline for first case per %i habitants: %s"%(pop_div, country, ))
                 _100_cases_index = None
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     if date in self.data[country] and \
                         (self.data[country][date].total_cases / (self.population[country] / pop_div)) >= 1:
                         _100_cases_index = index
@@ -1544,7 +1675,7 @@ class CoronaBaseData:
                 if _100_cases_index == None:
                     continue
                 timeline = {}
-                for index, date in enumerate(self.dates):
+                for index, date in enumerate(self.get_limited_dates()):
                     days = index - _100_cases_index
                     log.debug("%s, %i days"%(_format_date(date), days))
                     timeline[days] = date

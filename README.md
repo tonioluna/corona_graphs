@@ -2,7 +2,11 @@
 Coronavirus Graphs
 
 # Setup
-TDB: Install missing python packages
+Install the following python libraries, if not available:
+scipy
+matplotlib
+colorama
+numpy
 
 # Data Sources:
 ## Population
