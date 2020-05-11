@@ -286,7 +286,11 @@ _plot_line_markers = (".",
                       "x",
                       "d",
                       )
-                          
+                    
+COUNTRY_MX_X8 = "Mexico x8"
+
+SPECIAL_FLAG_ADD_MX_X8 = "ADD_MX_X8"
+                    
 def init_logger():
     global log
     
@@ -335,6 +339,19 @@ class LoggerWrapper:
             sys.stdout.write(colorama.Fore.RED)
         return getattr(self._parent_logger, key)
 
+class SpecialFlags:
+    def __init__(self, str_val):
+        self.add_mx_x8 = False
+
+        if str_val == None:
+            return
+        
+        for f in [s.strip().upper() for s in str_val.split(",")]:
+            if f == SPECIAL_FLAG_ADD_MX_X8:
+                self.add_mx_x8 = True
+            else:
+                raise Exception("Uknown special flag: %s"%(f,))
+        
 class Report:
     
     def __init__(self, params, section):
@@ -346,6 +363,8 @@ class Report:
         self.ID = section[7:]
         
         self.filename_postfix = None
+        
+        #self.special_flags = SpecialFlags( params._get_option(section, "special_flags").strip() if params._curr_parser().has_option(section, "special_flags") else None
         
         self.data_type = params._get_option(section, "data_type").strip()
         assert self.data_type in _known_data, "Unsupported data type: %s"%(self.data_type)
@@ -600,7 +619,8 @@ def strToBool(txt):
 def read_population_data(filename = None,
                          country_col = None,
                          population_col = None, 
-                         population_name_xlation = None):
+                         population_name_xlation = None, 
+                         special_flags = None):
     if filename == None:     filename = POPULATION_CSV_FILENAME
     if country_col == None:  country_col = POPULATION_CSV_HDR_COUNTRY
     if population_col == None:  population_col = POPULATION_CSV_HDR_POPULATION
@@ -648,6 +668,9 @@ def read_population_data(filename = None,
                 data.pop(con)
             if con in conflicted_countries: continue
             data[con] = pop
+            #if special_flags != None and special_flags.add_mx_x8 and con = "Mexico":
+            if con == "Mexico":
+                data[COUNTRY_MX_X8] = pop
     
     return data
     
@@ -708,6 +731,8 @@ class CoronaBaseData:
             prev_deaths = 0
             
             self.data[country] = {}
+            if country == "Mexico":
+                self.data[COUNTRY_MX_X8] = {}
 
             for date in self.dates:
                 confirmed = data_confirmed.get(country, {}).get(date, prev_confirmed)
@@ -723,6 +748,9 @@ class CoronaBaseData:
                 
                 e = CSD_CoronaDayEntry(total_deaths, total_cases, new_deaths, new_cases, total_recovered, new_recovered)
                 self.data[country][date] = e
+                #if country == "Mexico":
+                #    e2 = CSD_CoronaDayEntry(total_deaths*8, total_cases*20, new_deaths*8, new_cases*8, total_recovered*8, new_recovered*8)
+                #    self.data[COUNTRY_MX_X8][date] = e2
                 
                 prev_confirmed = confirmed
                 prev_recovered = recovered
@@ -778,6 +806,8 @@ class CoronaBaseData:
                     
                     if country not in data:
                         data[country] = {}
+                        if country == "Mexico":
+                            data[COUNTRY_MX_X8] = {}
                     
                     for index, date in date_indexes.items():
                         try:
@@ -795,6 +825,8 @@ class CoronaBaseData:
                             continue
                         # Do this so countries which take multiple rows can be added
                         data[country][date] = num + data[country].get(date, 0)
+                        if country == "Mexico":
+                            data[COUNTRY_MX_X8][date] = data[country][date] * 8
                     
                 except Exception as ex:
                     raise Exception("Failed to process data at row %i: %s"%(rnum, ex))
@@ -868,12 +900,13 @@ class CoronaBaseData:
     
     def export(self, report):
         if not report.sequence_do_export:
-            _country_label_order = None
+            self._country_label_order = None
             self._export(report)
         else:
             if report.sequence_type == SEQUENCE_DATE_INCREMENTAL:
                 # Calculate the range to go over
                 self._country_label_order = []
+                first_ok_frame = None
                 for index, date in enumerate(self.dates):
                     if index == 0: continue
                     self.date_limit_min = None
@@ -882,6 +915,11 @@ class CoronaBaseData:
                     props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
                     date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
                     filename = self._export(report, plot_args = dict(extra_labels = [date_legend]))
+                    if filename != None:
+                        if first_ok_frame == None:
+                            first_ok_frame = index
+                    else:
+                        first_ok_frame = None
                     
                 if report.sequence_clone_last_frame != None:
                     log.info("Copying last frame %s %i times"%(filename, report.sequence_clone_last_frame))
@@ -893,6 +931,7 @@ class CoronaBaseData:
                     cmd = report.sequence_postprocess_command
                     cmd = cmd.replace("#FILENAME_WILDCARD#", os.path.basename(filename.replace(report.filename_postfix, ".frame_%03d")))
                     cmd = cmd.replace("#REPORT_NAME#", report.ID)
+                    cmd = cmd.replace("#FIRST_OK_FRAME#", str(first_ok_frame))
                     cwd = os.getcwd()
                     try:
                         d = os.path.dirname(filename)
@@ -1114,6 +1153,7 @@ class CoronaBaseData:
         except Exception as ex:
             log.error("Failed to export data to report %s: %s"%(report.filename, ex))
             log.debug(traceback.format_exc())
+            return None
     
     def smooth_data(self, data, filter_sigma, selected_countries):
         log.info("Smoothing data...")
@@ -1200,6 +1240,9 @@ class CoronaBaseData:
                 self._country_label_order.append(country)
             nsc_index += 1
             
+            #log.debug("%s X: %s"%(country, repr(x)))
+            #log.debug("%s Y: %s"%(country, repr(y)))
+            
             if axis2_report_data != None:
                 x2 = []
                 y2 = []
@@ -1214,7 +1257,7 @@ class CoronaBaseData:
                     else:
                         x2.append(adj_date)
                     y2.append(data)
-                
+            
             if report.plot_style == PLOT_STYLE_LINE:
                 line, = ax1.plot(x, 
                                  y, 
