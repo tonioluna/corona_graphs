@@ -179,8 +179,12 @@ _known_filters = (FILTER_NONE,
                   FILTER_COUNTRY_LIST)
 _filters_with_int_arg = (FILTER_TOP_MAX,
                          FILTER_TOP_MAX_MX)
-_filters_with_string_list = (FILTER_COUNTRY_LIST,
-                             )
+_filters_with_string_list = (FILTER_COUNTRY_LIST,                       
+                       )
+
+COUNTRY_MX_X8 = "Mexico x8"
+COUNTRY_MX = "Mexico"
+_vip_countries = (COUNTRY_MX, COUNTRY_MX_X8)
 
 PLOT_AXIS_FONT_SIZE = 8
 
@@ -274,8 +278,8 @@ _known_sequence_types = (SEQUENCE_DATE_INCREMENTAL,)
 #                     (8, 4,  8, 4),
 #                     )
 _plot_line_styles = ((1, 2, 6, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
-                     (1, 2, 1, 2),
                      (3, 2, 6, 2),
+                     (1, 2, 1, 2),
                      (3, 3, 3, 3),
                      #(8, 4, 8, 4),
                      )
@@ -290,8 +294,6 @@ _plot_line_markers = (".",
                       "x",
                       "d",
                       )
-                    
-COUNTRY_MX_X8 = "Mexico x8"
 
 SPECIAL_FLAG_ADD_MX_X8 = "ADD_MX_X8"
                     
@@ -368,7 +370,11 @@ class Report:
         
         self.filename_postfix = None
         
-        #self.special_flags = SpecialFlags( params._get_option(section, "special_flags").strip() if params._curr_parser().has_option(section, "special_flags") else None
+        #self.special_flags = SpecialFlags( params._get_option(section, "special_flags").strip() if params._has_option(section, "special_flags") else None
+        
+        if params._has_option(section, "template"):
+            template = params._get_option(section, "template").strip()
+            params._register_template_section(section, template)
         
         self.data_type = params._get_option(section, "data_type").strip()
         assert self.data_type in _known_data, "Unsupported data type: %s"%(self.data_type)
@@ -380,12 +386,12 @@ class Report:
         for format in self.formats:
             assert format in _known_formats, "Unsupported format: %s"%(format)
         
-        self.filename = params._get_option(section, "filename").strip() if params._curr_parser().has_option(section, "filename") else "@AUTO"
+        self.filename = params._get_option(section, "filename").strip() if params._has_option(section, "filename") else "@AUTO"
         if self.filename == "@AUTO":
             self.filename = self.ID
         
-        self.filter_sigma = float(params._get_option(section, "filter_sigma")) if params._curr_parser().has_option(section, "filter_sigma") else None
-        self.axis2_filter_sigma = float(params._get_option(section, "axis2_filter_sigma")) if params._curr_parser().has_option(section, "axis2_filter_sigma") else None
+        self.filter_sigma = float(params._get_option(section, "filter_sigma")) if params._has_option(section, "filter_sigma") else None
+        self.axis2_filter_sigma = float(params._get_option(section, "axis2_filter_sigma")) if params._has_option(section, "axis2_filter_sigma") else None
         
         self.sort_columns = params._get_option(section, "sort_columns").strip()
         assert self.sort_columns in _known_sorts, "Unsupported sort_columns: %s"%(self.sort_columns)
@@ -402,7 +408,7 @@ class Report:
                 arg = [s.strip() for s in arg.split(",")]
             self.filter_value = arg
         
-        if params._curr_parser().has_option(section, "plot_x_range"):
+        if params._has_option(section, "plot_x_range"):
             rng = [s.strip() for s in params._get_option(section, "plot_x_range").strip().split(",")]
             assert len(rng) == 2, "plot_x_range must contain 2 items, not %i"%(len(rng))
             if self.timeline in _date_timelines:
@@ -414,72 +420,72 @@ class Report:
         else:
             self.plot_x_range = None
             
-        if params._curr_parser().has_option(section, "plot_y_range"):
+        if params._has_option(section, "plot_y_range"):
             rng = [s.strip() for s in params._get_option(section, "plot_y_range").strip().split(",")]
             self.plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.plot_y_range = None
         
-        self.plot_title = None if not params._curr_parser().has_option(section, "plot_title") else params._get_option(section, "plot_title")
-        self.plot_subtitle = None if not params._curr_parser().has_option(section, "plot_subtitle") else params._get_option(section, "plot_subtitle").replace("\\n","\n")
+        self.plot_title = None if not params._has_option(section, "plot_title") else params._get_option(section, "plot_title")
+        self.plot_subtitle = None if not params._has_option(section, "plot_subtitle") else params._get_option(section, "plot_subtitle").replace("\\n","\n")
         
-        if params._curr_parser().has_option(section, "exclude_countries"):
+        if params._has_option(section, "exclude_countries"):
             exclude_countries = params._get_option(section, "exclude_countries")
             exclude_countries = [s.strip() for s in exclude_countries.split(',')]
             self.exclude_countries = exclude_countries
         else:
             self.exclude_countries = None
             
-        self.legend_location = LEGEND_LOCATION_BEST if not params._curr_parser().has_option(section, "legend_location") else params._get_option(section, "legend_location").strip() 
+        self.legend_location = LEGEND_LOCATION_BEST if not params._has_option(section, "legend_location") else params._get_option(section, "legend_location").strip() 
         assert self.legend_location in _known_legend_locations, "Invalid value for legend_location: %s"%(self.legend_location)
         
         self.plot_style = PLOT_STYLE_LINE
-        if params._curr_parser().has_option(section, "plot_style"):
+        if params._has_option(section, "plot_style"):
             self.plot_style = params._get_option(section, "plot_style")
         assert self.plot_style in _known_plot_styles, "Invalid parameter plot_style: %s"%(self.plot_style, )
 
-        self.plot_line_width = 0.75 if not params._curr_parser().has_option(section, "plot_line_width") else float(params._get_option(section, "plot_line_width"))
-        self.axis2_plot_line_width = 0.75 if not params._curr_parser().has_option(section, "axis2_plot_line_width") else float(params._get_option(section, "axis2_plot_line_width"))
-        self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not params._curr_parser().has_option(section, "plot_line_legend_style") else params._get_option(section, "plot_line_legend_style")
+        self.plot_line_width = 0.75 if not params._has_option(section, "plot_line_width") else float(params._get_option(section, "plot_line_width"))
+        self.axis2_plot_line_width = 0.75 if not params._has_option(section, "axis2_plot_line_width") else float(params._get_option(section, "axis2_plot_line_width"))
+        self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not params._has_option(section, "plot_line_legend_style") else params._get_option(section, "plot_line_legend_style")
         assert self.plot_line_legend_style in _known_plot_line_legend_styles, "Invalid style for plot_line_legend_style: %s"%(self.plot_line_legend_style)
          
                 
         self.plot_y_scale = PLOT_SCALE_LINEAR
-        if params._curr_parser().has_option(section, "plot_y_scale"):
+        if params._has_option(section, "plot_y_scale"):
             self.plot_y_scale = params._get_option(section, "plot_y_scale")
         assert self.plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.plot_y_scale, )
         
         self.plot_x_scale = PLOT_SCALE_LINEAR
-        if params._curr_parser().has_option(section, "plot_x_scale"):
+        if params._has_option(section, "plot_x_scale"):
             self.plot_x_scale = params._get_option(section, "plot_y_scale")
         assert self.plot_x_scale in _known_plot_scales, "Invalid parameter plot_x_scale: %s"%(self.plot_x_scale, )
         
         
         # AXIS 2
         self.axis2_data_type = None
-        if params._curr_parser().has_option(section, "axis2_data_type"):
+        if params._has_option(section, "axis2_data_type"):
             self.axis2_data_type = params._get_option(section, "axis2_data_type").strip()
             assert self.axis2_data_type in _known_data, "Unsupported axis2 data type: %s"%(self.axis2_data_type)
 
-        if params._curr_parser().has_option(section, "axis2_plot_y_range"):
+        if params._has_option(section, "axis2_plot_y_range"):
             rng = [s.strip() for s in params._get_option(section, "axis2_plot_y_range").strip().split(",")]
             self.axis2_plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.axis2_plot_y_range = None
         
         self.axis2_plot_style = PLOT_STYLE_LINE
-        if params._curr_parser().has_option(section, "axis2_plot_style"):
+        if params._has_option(section, "axis2_plot_style"):
             self.axis2_plot_style = params._get_option(section, "axis2_plot_style")
         assert self.axis2_plot_style in _known_plot_styles, "Invalid parameter axis2_plot_style: %s"%(self.axis2_plot_style, )
                 
         self.axis2_plot_y_scale = PLOT_SCALE_LINEAR
-        if params._curr_parser().has_option(section, "axis2_plot_y_scale"):
+        if params._has_option(section, "axis2_plot_y_scale"):
             self.axis2_plot_y_scale = params._get_option(section, "axis2_plot_y_scale")
         assert self.axis2_plot_y_scale in _known_plot_scales, "Invalid parameter plot_y_scale: %s"%(self.axis2_plot_y_scale, )
         
-        self.sync_both_y_axis = False if not params._curr_parser().has_option(section, "sync_both_y_axis") else strToBool(params._get_option(section, "sync_both_y_axis"))
+        self.sync_both_y_axis = False if not params._has_option(section, "sync_both_y_axis") else strToBool(params._get_option(section, "sync_both_y_axis"))
         
-        self.sequence_do_export = False if not params._curr_parser().has_option(section, "sequence_do_export") else strToBool(params._get_option(section, "sequence_do_export"))
+        self.sequence_do_export = False if not params._has_option(section, "sequence_do_export") else strToBool(params._get_option(section, "sequence_do_export"))
         if self.sequence_do_export:
             self.sequence_type = params._get_option(section, "sequence_type").strip()
             assert self.sequence_type in _known_sequence_types, "Unsupported sequence_type: %s"%(self.sequence_type)
@@ -489,9 +495,9 @@ class Report:
                 self.sequence_range = [RelativeDate(s.strip()) for s in self.sequence_range.split(",")]
                 assert len(self.sequence_range) == 2, "sequence_range must be len 2, not %i"%(len(self.sequence_range))
             
-            self.sequence_clone_last_frame = None if not params._curr_parser().has_option(section, "sequence_clone_last_frame") else int(params._get_option(section, "sequence_clone_last_frame"))
+            self.sequence_clone_last_frame = None if not params._has_option(section, "sequence_clone_last_frame") else int(params._get_option(section, "sequence_clone_last_frame"))
             
-            self.sequence_do_postprocess = False if not params._curr_parser().has_option(section, "sequence_do_postprocess") else strToBool(params._get_option(section, "sequence_do_postprocess"))
+            self.sequence_do_postprocess = False if not params._has_option(section, "sequence_do_postprocess") else strToBool(params._get_option(section, "sequence_do_postprocess"))
             if self.sequence_do_postprocess:
                 self.sequence_postprocess_command = params._get_option(section, "sequence_postprocess_command").strip()
         
@@ -513,6 +519,8 @@ class Parameters:
         index = 0
         self._parsers = []
         self._replacements = {}
+        self._templates = {}
+        self._mapped_templates = {}
         while True:
             if index >= len(self._filenames): 
                 break
@@ -521,11 +529,11 @@ class Parameters:
     
     def _read_general_options(self, dir):
         # First read the general section so the includes are processed first
-        if self._curr_parser().has_option("general", "report_dir"):
+        if self._has_option("general", "report_dir"):
             self.report_dir = self._get_option("general", 'report_dir').strip()
-        if self._curr_parser().has_option("general", "include_files"):
+        if self._has_option("general", "include_files"):
             files = [s.strip() for s in self._get_option("general", "include_files").split(",")]
-            print(repr(files))
+            #print(repr(files))
             for file in files:
                 if not os.path.isabs(file):
                     file = os.path.join(dir, file)
@@ -547,17 +555,42 @@ class Parameters:
     def _curr_parser(self):
         return self._parsers[-1]
         
+    def _has_option(self, section, option):
+        if self._curr_parser().has_option(section, option): return True
+        if section in self._mapped_templates:
+            return option in self._templates[self._mapped_templates[section]]
+        return False
+        
     def _get_option(self, section, option):
-        val = self._curr_parser().get(section, option).strip()
+        p = self._curr_parser()
+        if p.has_option(section, option):
+            val = p.get(section, option).strip()
+        elif section in self._mapped_templates and option in self._templates[self._mapped_templates[section]]:
+            val =  self._templates[self._mapped_templates[section]][option].strip()
+        else:
+            raise Exception("Unable option %s.%s"%(section, option))
         log.debug("%s.%s -> %s"%(section, option, val))
         for rep in REPLACEMENTS_REGEX.findall(val):
             rep_name = rep[1:-1]
             if not rep_name in self._replacements:
-                raise Exception("Replacement '%s' from %s.%s (at %s) does not exist"%(rep_name, section, option, self._curr_parser()._filename))
+                raise Exception("Replacement '%s' from %s.%s (at %s) does not exist"%(rep_name, section, option, p._filename))
             new_val = self._replacements[rep_name]
             val = val.replace(rep, new_val)
         log.debug("Final val: %s"%(val,))
         return val
+    
+    def _register_template_section(self, section, template):
+        assert template in self._templates
+        self._mapped_templates[section] = template
+        
+    def _read_templates(self):
+        p = self._curr_parser()
+        for section in p.sections():
+            if section.startswith("template_"):
+                template = section[9:]
+                self._templates[template] = {}
+                for option in p.options(section):
+                    self._templates[template][option] = p.get(section, option)
     
     def _read_file(self, filename):
         #parser = configparser.RawConfigParser()
@@ -573,6 +606,7 @@ class Parameters:
         # If available on this file, read replacements
         self._read_replacements()
         self._read_general_options(os.path.dirname(filename))
+        self._read_templates()
         
         for section in self._curr_parser().sections():
             log.debug("Reading section %s"%(section, ))
@@ -672,8 +706,8 @@ def read_population_data(filename = None,
                 data.pop(con)
             if con in conflicted_countries: continue
             data[con] = pop
-            #if special_flags != None and special_flags.add_mx_x8 and con = "Mexico":
-            if con == "Mexico":
+            #if special_flags != None and special_flags.add_mx_x8 and con = COUNTRY_MX:
+            if con == COUNTRY_MX:
                 data[COUNTRY_MX_X8] = pop
     
     return data
@@ -735,7 +769,7 @@ class CoronaBaseData:
             prev_deaths = 0
             
             self.data[country] = {}
-            if country == "Mexico":
+            if country == COUNTRY_MX:
                 self.data[COUNTRY_MX_X8] = {}
 
             for date in self.dates:
@@ -752,7 +786,7 @@ class CoronaBaseData:
                 
                 e = CSD_CoronaDayEntry(total_deaths, total_cases, new_deaths, new_cases, total_recovered, new_recovered)
                 self.data[country][date] = e
-                #if country == "Mexico":
+                #if country == COUNTRY_MX:
                 #    e2 = CSD_CoronaDayEntry(total_deaths*8, total_cases*20, new_deaths*8, new_cases*8, total_recovered*8, new_recovered*8)
                 #    self.data[COUNTRY_MX_X8][date] = e2
                 
@@ -810,7 +844,7 @@ class CoronaBaseData:
                     
                     if country not in data:
                         data[country] = {}
-                        if country == "Mexico":
+                        if country == COUNTRY_MX:
                             data[COUNTRY_MX_X8] = {}
                     
                     for index, date in date_indexes.items():
@@ -829,7 +863,7 @@ class CoronaBaseData:
                             continue
                         # Do this so countries which take multiple rows can be added
                         data[country][date] = num + data[country].get(date, 0)
-                        if country == "Mexico":
+                        if country == COUNTRY_MX:
                             data[COUNTRY_MX_X8][date] = data[country][date] * 8
                     
                 except Exception as ex:
@@ -1268,27 +1302,28 @@ class CoronaBaseData:
                 line, = ax1.plot(x, 
                                  y, 
                                  label = country if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_STANDARD else None, 
-                                 linewidth = report.plot_line_width if country != "Mexico" else report.plot_line_width * 1.5)
+                                 linewidth = report.plot_line_width if (country not in _vip_countries) else report.plot_line_width * 1.5)
+                                 
                 if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_EOL_MARKER:
-                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[nsc_index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if country != "Mexico" else 40), label=country)
+                    ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[nsc_index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if (country not in _vip_countries) else 40), label=country)
                 line.set_dashes(_plot_line_styles[nsc_index % len(_plot_line_styles)])
             elif report.plot_style == PLOT_STYLE_MARKERS:
-                line, = ax1.plot(x, y, label=country, linewidth = 0.75 if country != "Mexico" else 1)
+                line, = ax1.plot(x, y, label=country, linewidth = 0.75 if (country not in _vip_countries) else 1)
                 line.set_dashes((0, 1))
                 line.set_marker(_plot_line_markers[nsc_index % len(_plot_line_markers)])
-                line.set_markersize(3 if country != "Mexico" else 4.2)
+                line.set_markersize(3 if (country not in _vip_countries) else 4.2)
             else:
                 raise Exception("Unsupported plot style: %s"%(report.plot_style, )) 
             
             if axis2_report_data != None:
                 line2, = ax2.plot(x2, y2, 
-                                  linewidth = report.axis2_plot_line_width if country != "Mexico" else report.axis2_plot_line_width * 1.5)
+                                  linewidth = report.axis2_plot_line_width if (country not in _vip_countries) else report.axis2_plot_line_width * 1.5)
                 if report.axis2_plot_style == PLOT_STYLE_LINE:
                     line2.set_dashes(_plot_line_styles[nsc_index % len(_plot_line_styles)])
                 elif report.axis2_plot_style == PLOT_STYLE_MARKERS:
                     line2.set_dashes((0, 1))
                     line2.set_marker(_plot_line_markers[nsc_index % len(_plot_line_markers)])
-                    line2.set_markersize(3 if country != "Mexico" else 4.2)
+                    line2.set_markersize(3 if (country not in _vip_countries) else 4.2)
                 else:
                     raise Exception("Unsupported plot style for axis2: %s"%(report.axis2_plot_style, ))
                 
@@ -1325,13 +1360,18 @@ class CoronaBaseData:
             if i == 0:
                 dt = report.data_type
                 ax = ax1
+                filter_sigma = report.filter_sigma
             else:
                 if axis2_report_data == None: continue
                 dt = report.axis2_data_type
                 ax = ax2
-            
+                filter_sigma = report.axis2_filter_sigma
+
             if dt in _data_display_names:
-                ax.set_ylabel(_data_display_names.get(dt), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+                txt = _data_display_names.get(dt)
+                if filter_sigma != None:
+                    txt += " (Filter $\sigma$ %.2f)"%(filter_sigma,)
+                ax.set_ylabel(txt, fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
             else:
                 log.warning("No label defined for data type %s"%(dt, ))
     
@@ -1601,8 +1641,8 @@ class CoronaBaseData:
             # Limit the number of countries as requested
             if len(tmp_country_list) > filter_value:
                 tmp_country_list = tmp_country_list[:filter_value]
-            if filter == FILTER_TOP_MAX_MX and "Mexico" in report_countries:
-                tmp_country_list.append("Mexico")
+            if filter == FILTER_TOP_MAX_MX and COUNTRY_MX in report_countries:
+                tmp_country_list.append(COUNTRY_MX)
             # Now, keep the original order of countries
             for country in report_countries:
                 if country in tmp_country_list:
