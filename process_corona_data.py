@@ -86,6 +86,7 @@ DATA_TOTAL_DEATHS_PER_1M = "total_deaths_per_1m"
 DATA_TOTAL_DEATHS = "total_deaths"
 DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES = "total_deaths_per_1k_total_cases"
 DATA_NEW_DEATHS_PER_1M = "new_deaths_per_1m"
+DATA_NEW_DEATHS_PER_1K = "new_deaths_per_1k"
 DATA_NEW_DEATHS = "new_deaths"
 DATA_ACTIVE_CASES = "active_cases"
 DATA_ACTIVE_CASES_PER_1M = "active_cases_per_1m"
@@ -106,6 +107,7 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_DEATHS_PER_1M,
                DATA_NEW_DEATHS,
                DATA_NEW_DEATHS_PER_1M,
+               DATA_NEW_DEATHS_PER_1K,
                DATA_ACTIVE_CASES,
                DATA_ACTIVE_CASES_PER_1M,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES,
@@ -130,6 +132,7 @@ _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M,
                                DATA_NEW_CASES_PER_1M,
                                DATA_TOTAL_DEATHS_PER_1M,
                                DATA_NEW_DEATHS_PER_1M,
+                               DATA_NEW_DEATHS_PER_1K,
                                DATA_ACTIVE_CASES_PER_1M,
                                DATA_TOTAL_RECOVERED_PER_1M,
                                )
@@ -155,6 +158,7 @@ _data_display_names = {DATA_TOTAL_CASES:"Total cases",
                        DATA_TOTAL_DEATHS_PER_1M:"Total deaths / 1M Habs",
                        DATA_NEW_DEATHS:"New deaths per day",
                        DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
+                       DATA_NEW_DEATHS_PER_1K:"New deaths per day / 1K Habs",
                        DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
                        DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(From 1K active cases)",
                        DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(From 1K active cases)",
@@ -1053,6 +1057,8 @@ class CoronaBaseData:
                                         data = self.data[country][actual_date].total_deaths / (self.population[country] / 1000000)
                                     elif dt == DATA_NEW_DEATHS_PER_1M:
                                         data = self.data[country][actual_date].new_deaths / (self.population[country] / 1000000)
+                                    elif dt == DATA_NEW_DEATHS_PER_1K:
+                                        data = self.data[country][actual_date].new_deaths / (self.population[country] / 1000)
                                     else:
                                         raise Exception("Unsupported data type: %s"%(dt))
                                 except ZeroDivisionError:
