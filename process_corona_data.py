@@ -19,6 +19,9 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 import colorama
 from scipy.ndimage.filters import gaussian_filter1d
+import zipfile
+import tempfile
+        
 
 if __name__ == "__main__":
     I_AM_SCRIPT = True
@@ -223,9 +226,22 @@ CONFIG_FILE = "reports.ini"
 
 DATA_SOURCE_OURWORLDINDATA = "ourworldindata."
 DATA_SOURCE_CSSEGISSANDATA = "CSSEGISandData"
+DATA_SOURCE_COVID19MX = "covid19mx"
+
+REPORT_TYPE_COUNTRIES = "countries"
+REPORT_TYPE_MEXICO = "mexico"
+
+_known_report_types = (REPORT_TYPE_COUNTRIES,
+                       REPORT_TYPE_MEXICO)
+
+_known_data_sources = {REPORT_TYPE_COUNTRIES:(DATA_SOURCE_OURWORLDINDATA,
+                                              DATA_SOURCE_CSSEGISSANDATA),
+                       REPORT_TYPE_MEXICO   :(DATA_SOURCE_COVID19MX,)                
+                      }
 
 DATA_SOURCE_TXT = {DATA_SOURCE_CSSEGISSANDATA : "John Hopkins University - https://github.com/CSSEGISandData/COVID-19",
-                   DATA_SOURCE_OURWORLDINDATA : "Our World in Data - https://ourworldindata.org/coronavirus-source-data"}
+                   DATA_SOURCE_OURWORLDINDATA : "Our World in Data - https://ourworldindata.org/coronavirus-source-data",
+                   DATA_SOURCE_COVID19MX      : "https://www.covid19in.mx/ - https://github.com/mayrop/covid19mx"}
 
 POPULATION_CSV_FILENAME = "population.csv"
 POPULATION_CSV_HDR_COUNTRY = "Country"
@@ -255,6 +271,80 @@ CSD_CORONA_CSV_FILENAME_RECOVERED = "time_series_covid19_recovered_global.csv"
 CSD_CORONA_CSV_HDR_STATE = "Province/State"
 CSD_CORONA_CSV_HDR_COUNTRY = "Country/Region"
 CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$")
+
+COVID19MX_CATALOG_TYPE_SIMPLE = "simple"
+COVID19MX_CATALOG_TYPE_MUNICIPIOS = "municipios"
+COVID19MX_CATALOG_TYPE_ENTIDADES = "entidades"
+# First column is the key column
+COVID19MX_CATALOG_TYPE_HDR_COLS = { COVID19MX_CATALOG_TYPE_SIMPLE     : ("CLAVE","DESCRIPCION"),
+                                    COVID19MX_CATALOG_TYPE_MUNICIPIOS : ("CLAVE_MUNICIPIO","MUNICIPIO","CLAVE_ENTIDAD"),
+                                    COVID19MX_CATALOG_TYPE_ENTIDADES  : ("CLAVE_ENTIDAD","ENTIDAD_FEDERATIVA","ABREVIATURA")}
+
+COVID19MX_DIR_CATALOGS    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "catalogos")
+COVID19MX_CATALOG_ENTIDADES     = "catalog_entidades"
+COVID19MX_CATALOG_MUNICIPIOS    = "catalog_municipios"
+COVID19MX_CATALOG_NACIONALIDAD  = "catalog_nacionalidad"
+COVID19MX_CATALOG_ORIGEN        = "catalog_origen"
+COVID19MX_CATALOG_RESULTADO     = "catalog_resultado"
+COVID19MX_CATALOG_SECTOR        = "catalog_sector"
+COVID19MX_CATALOG_SEXO          = "catalog_sexo"
+COVID19MX_CATALOG_SI_NO         = "catalog_si_no" 
+COVID19MX_CATALOG_TIPO_PACIENTE = "catalog_tipo_paciente"
+COVID19MX_COL_DATE              = "col_date"
+COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv",    COVID19MX_CATALOG_TYPE_ENTIDADES), 
+                               (COVID19MX_CATALOG_MUNICIPIOS   , "municipios.csv",   COVID19MX_CATALOG_TYPE_MUNICIPIOS),
+                               (COVID19MX_CATALOG_NACIONALIDAD , "nacionalidad.csv", COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_ORIGEN       , "origen.csv",       COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_RESULTADO    , "resultado.csv",    COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_SECTOR       , "sector.csv",       COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_SEXO         , "sexo.csv",         COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_SI_NO        , "si_no.csv",        COVID19MX_CATALOG_TYPE_SIMPLE),
+                               (COVID19MX_CATALOG_TIPO_PACIENTE, "tipo_paciente.csv",COVID19MX_CATALOG_TYPE_SIMPLE),)
+
+# Will duplicate ID and col_header, just in case one of those changes at some point
+COVID19MX_COL_ENTRY = collections.namedtuple("Covid19MX_Column_Entry", ("ID", "col_header", "entry_type"))
+COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR = re.compile("^(?P<year>\d{4})(?P<month>\d{2})$")
+COVID19MX_REGEX_MAIN_REPORT_DAY_FILE  = re.compile("^(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})\.zip$")
+COVID19MX_DIR_MAIN_REPORT_DIR    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "todos")
+
+COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",     "FECHA_ACTUALIZACION",   COVID19MX_COL_DATE),
+                                  COVID19MX_COL_ENTRY("ID_REGISTRO",             "ID_REGISTRO",           None),
+                                  COVID19MX_COL_ENTRY("ORIGEN",                  "ORIGEN",                COVID19MX_CATALOG_ORIGEN),
+                                  COVID19MX_COL_ENTRY("SECTOR",                  "SECTOR",                COVID19MX_CATALOG_SECTOR),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_UM",              "ENTIDAD_UM",            COVID19MX_CATALOG_ENTIDADES),
+                                  COVID19MX_COL_ENTRY("SEXO",                    "SEXO",                  COVID19MX_CATALOG_SEXO),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_NAC",             "ENTIDAD_NAC",           COVID19MX_CATALOG_ENTIDADES),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_RES",             "ENTIDAD_RES",           COVID19MX_CATALOG_ENTIDADES),
+                                  COVID19MX_COL_ENTRY("MUNICIPIO_RES",           "MUNICIPIO_RES",         COVID19MX_CATALOG_MUNICIPIOS),
+                                  COVID19MX_COL_ENTRY("TIPO_PACIENTE",           "TIPO_PACIENTE",         COVID19MX_CATALOG_TIPO_PACIENTE),
+                                  COVID19MX_COL_ENTRY("FECHA_INGRESO",           "FECHA_INGRESO",         COVID19MX_COL_DATE),
+                                  COVID19MX_COL_ENTRY("FECHA_SINTOMAS",          "FECHA_SINTOMAS",        COVID19MX_COL_DATE),
+                                  COVID19MX_COL_ENTRY("FECHA_DEF",               "FECHA_DEF",             COVID19MX_COL_DATE),
+                                  COVID19MX_COL_ENTRY("INTUBADO",                "INTUBADO",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("NEUMONIA",                "NEUMONIA",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("EDAD",                    "EDAD",                  COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("NACIONALIDAD",            "NACIONALIDAD",          COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("EMBARAZO",                "EMBARAZO",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("HABLA_LENGUA_INDIG",      "HABLA_LENGUA_INDIG",    COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("DIABETES",                "DIABETES",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("EPOC",                    "EPOC",                  COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("ASMA",                    "ASMA",                  COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("INMUSUPR",                "INMUSUPR",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("HIPERTENSION",            "HIPERTENSION",          COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("OTRA_COM",                "OTRA_COM",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("CARDIOVASCULAR",          "CARDIOVASCULAR",        COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("OBESIDAD",                "OBESIDAD",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("RENAL_CRONICA",           "RENAL_CRONICA",         COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("TABAQUISMO",              "TABAQUISMO",            COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("OTRO_CASO",               "OTRO_CASO",             COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("RESULTADO",               "RESULTADO",             COVID19MX_CATALOG_RESULTADO),
+                                  COVID19MX_COL_ENTRY("MIGRANTE",                "MIGRANTE",              COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("PAIS_NACIONALIDAD",       "PAIS_NACIONALIDAD",     None),
+                                  COVID19MX_COL_ENTRY("PAIS_ORIGEN",             "PAIS_ORIGEN",           None),
+                                  COVID19MX_COL_ENTRY("UCI",                     "UCI",                   COVID19MX_CATALOG_SI_NO),
+                                 )
+# Create the collection for each row entry
+COVID19MX_MAIN_REPORT_ENTRY = collections.namedtuple("COVID19MX_MAIN_REPORT_ENTRY", [e.ID for e in COVID19MX_DIR_MAIN_REPORT_COLS])
 
 REPLACEMENTS_REGEX = re.compile("\@[a-zA-Z0-9_]+\@")
 
@@ -296,7 +386,36 @@ _plot_line_markers = (".",
                       )
 
 SPECIAL_FLAG_ADD_MX_X8 = "ADD_MX_X8"
-                    
+
+class SortedDate:
+    def __init__(self, tag, year, month, day = None):
+        self.tag = tag
+        self.year = int(year)
+        self.month = int(month)
+        self.day = None if day == None else int(day)
+        
+    def __lt__(self, other):
+        return self._cmp(other) < 0
+    def __gt__(self, other):
+        return self._cmp(other) > 0
+    def __eq__(self, other):
+        return self._cmp(other) == 0
+    def __le__(self, other):
+        return self._cmp(other) <= 0
+    def __ge__(self, other):
+        return self._cmp(other) >= 0
+    def __ne__(self, other):
+        return self._cmp(other) != 0
+    def _cmp(self, other):
+        assert (self.day != None and other.day != None) or (self.day == None and other.day == None), "Can't compare different types of dates"
+        if self.year != other.year:
+            return self.year - other.year
+        if self.month != other.month:
+            return self.month - other.month
+        if self.day != other.day:
+            return self.day - other.day
+        return 0
+            
 def init_logger():
     global log
     
@@ -521,13 +640,26 @@ class Parameters:
         self._replacements = {}
         self._templates = {}
         self._mapped_templates = {}
+        self.population_name_xlation = None
+        self.csd_country_xlation = None
+        self.csd_state_xlation = None
+        
         while True:
             if index >= len(self._filenames): 
                 break
             self._read_file(self._filenames[index])
             index += 1
     
+        assert self.report_type in _known_report_types, "Invalid report type: %s"%(self.report_type,)
+        assert self.data_source in _known_data_sources[self.report_type], "Invalid data source %s for report type %s"%(self.data_source, repr(self.report_type))
+        
     def _read_general_options(self, dir):
+        if self._has_option("general", "report_type"):
+            self.report_type = self._get_option("general", "report_type").strip()
+            
+        if self._has_option("general", "data_source"):
+            self.data_source = self._get_option("general", "data_source").strip()
+        
         # First read the general section so the includes are processed first
         if self._has_option("general", "report_dir"):
             self.report_dir = self._get_option("general", 'report_dir').strip()
@@ -568,7 +700,7 @@ class Parameters:
         elif section in self._mapped_templates and option in self._templates[self._mapped_templates[section]]:
             val =  self._templates[self._mapped_templates[section]][option].strip()
         else:
-            raise Exception("Unable option %s.%s"%(section, option))
+            raise Exception("Unable to read option %s:%s"%(section, option))
         log.debug("%s.%s -> %s"%(section, option, val))
         for rep in REPLACEMENTS_REGEX.findall(val):
             rep_name = rep[1:-1]
@@ -654,80 +786,267 @@ def strToBool(txt):
     raise Exception("Cannot convert %s to bool. Accepted values: (For True) %s, (For False) %s"
                     ""%(repr(txt), ",".join(_true_values), ",".join(_false_values),))
                    
-def read_population_data(filename = None,
-                         country_col = None,
-                         population_col = None, 
-                         population_name_xlation = None, 
-                         special_flags = None):
-    if filename == None:     filename = POPULATION_CSV_FILENAME
-    if country_col == None:  country_col = POPULATION_CSV_HDR_COUNTRY
-    if population_col == None:  population_col = POPULATION_CSV_HDR_POPULATION
-    
-    filename = os.path.abspath(filename)
-    
-    log.info("Reading contry population from %s"%(filename))
-    
-    assert os.path.isfile(filename), "Population file does not exist: %s"%(filename)
-    
-    data = {}
-    
-    with codecs.open(filename, "r", "utf8") as fh:
-        reader = csv.reader(fh)
-        # Read header
-        hdr_row = next(reader)
-        hdr_dict = {}
-        for index, cell in enumerate(hdr_row):
-            if cell == country_col:
-                hdr_dict[POPULATION_CSV_HDR_COUNTRY] = index
-                continue
-            if cell == population_col:
-                hdr_dict[POPULATION_CSV_HDR_POPULATION] = index
-                continue
-        assert len(hdr_dict) == 2, "Unable to get all header items %s, %s from %s"%(country_col, population_col, repr(hdr_row),)
-        
-        conflicted_countries = []
-        for row in reader:
-            con = row[hdr_dict[POPULATION_CSV_HDR_COUNTRY]]
-            if population_name_xlation != None and con in population_name_xlation:
-                con = population_name_xlation[con]
-            if con.find(",") != -1:
-                new_con = con.split(",")[0].strip()
-                log.debug("Adjusting country name from %s to %s"%(repr(con), repr(new_con)))
-                con = new_con
-            pop_s = row[hdr_dict[POPULATION_CSV_HDR_POPULATION]]
-            try:
-                pop = int(pop_s)
-            except ValueError as ex:
-                log.warning("Population for %s is invalid: %s. Skipping country."%(con, repr(pop_s)))
-                continue
-            if con in data:
-                log.warning("Duplicated country name, removing country from list: %s"%(con, ))
-                conflicted_countries.append(con)
-                data.pop(con)
-            if con in conflicted_countries: continue
-            data[con] = pop
-            #if special_flags != None and special_flags.add_mx_x8 and con = COUNTRY_MX:
-            if con == COUNTRY_MX:
-                data[COUNTRY_MX_X8] = pop
-    
-    return data
-    
 class CoronaBaseData:
-    def __init__(self, config_file, csv_filename = None, data_source = DATA_SOURCE_OURWORLDINDATA):
+    def __init__(self, config_file, csv_filename = None, data_source = DATA_SOURCE_OURWORLDINDATA, report_type = REPORT_TYPE_COUNTRIES):
         self.csv_filename = csv_filename
-        self.data_source = data_source
         self.config_file = config_file
         
         self.date_limit_min = None
         self.date_limit_top = None
         
         self.population = None
-        if self.data_source == DATA_SOURCE_OURWORLDINDATA:
-            self._read_owid()
-        elif self.data_source == DATA_SOURCE_CSSEGISSANDATA:
-            self._read_csd()
+        if self.config_file.report_type == REPORT_TYPE_COUNTRIES:
+            if self.config_file.data_source == DATA_SOURCE_OURWORLDINDATA:
+                self._read_owid()
+            elif self.config_file.data_source == DATA_SOURCE_CSSEGISSANDATA:
+                self._read_csd()
+            else:
+                raise Exception("Uknown source: %s"%(self.config_file.data_source))
+            population_data = self.read_population_data(population_name_xlation = self.config_file.population_name_xlation)
+        elif self.config_file.report_type == REPORT_TYPE_MEXICO:
+            if self.config_file.data_source == DATA_SOURCE_COVID19MX:
+                self._read_covid19mx()
+            else:
+                raise Exception("Uknown source: %s"%(self.config_file.data_source))
+            population_data = self._read_covid19mx_state_data()
         else:
-            raise Exception("Uknown source: %s"%(self.data_source))
+            raise Exception("Uknown report type: %s"%(self.config_file.report_type))
+        
+        self.set_country_population(population_data)
+        
+    def read_population_data(self,
+                             filename = None,
+                             country_col = None,
+                             population_col = None, 
+                             population_name_xlation = None, 
+                             special_flags = None):
+        if filename == None:     filename = POPULATION_CSV_FILENAME
+        if country_col == None:  country_col = POPULATION_CSV_HDR_COUNTRY
+        if population_col == None:  population_col = POPULATION_CSV_HDR_POPULATION
+        
+        filename = os.path.abspath(filename)
+        
+        log.info("Reading contry population from %s"%(filename))
+        
+        assert os.path.isfile(filename), "Population file does not exist: %s"%(filename)
+        
+        data = {}
+        
+        with codecs.open(filename, "r", "utf8") as fh:
+            reader = csv.reader(fh)
+            # Read header
+            hdr_row = next(reader)
+            hdr_dict = {}
+            for index, cell in enumerate(hdr_row):
+                if cell == country_col:
+                    hdr_dict[POPULATION_CSV_HDR_COUNTRY] = index
+                    continue
+                if cell == population_col:
+                    hdr_dict[POPULATION_CSV_HDR_POPULATION] = index
+                    continue
+            assert len(hdr_dict) == 2, "Unable to get all header items %s, %s from %s"%(country_col, population_col, repr(hdr_row),)
+            
+            conflicted_countries = []
+            for row in reader:
+                con = row[hdr_dict[POPULATION_CSV_HDR_COUNTRY]]
+                if population_name_xlation != None and con in population_name_xlation:
+                    con = population_name_xlation[con]
+                if con.find(",") != -1:
+                    new_con = con.split(",")[0].strip()
+                    log.debug("Adjusting country name from %s to %s"%(repr(con), repr(new_con)))
+                    con = new_con
+                pop_s = row[hdr_dict[POPULATION_CSV_HDR_POPULATION]]
+                try:
+                    pop = int(pop_s)
+                except ValueError as ex:
+                    log.warning("Population for %s is invalid: %s. Skipping country."%(con, repr(pop_s)))
+                    continue
+                if con in data:
+                    log.warning("Duplicated country name, removing country from list: %s"%(con, ))
+                    conflicted_countries.append(con)
+                    data.pop(con)
+                if con in conflicted_countries: continue
+                data[con] = pop
+                #if special_flags != None and special_flags.add_mx_x8 and con = COUNTRY_MX:
+                if con == COUNTRY_MX:
+                    data[COUNTRY_MX_X8] = pop
+        
+        return data
+
+    def _read_covid19mx(self):
+        catalogs = self._read_covid19mx_catalogs()
+        
+        entries = self._read_covid19mx_entries(catalogs) 
+    
+        log.info("Read %i MX COVID19 entries"%(len(entries)))
+    
+    def _read_covid19mx_entries(self, catalogs):
+        filename = self._get_covid19mx_main_report()
+        
+        # Create a dictionary of catalog types
+        catalog_types = {}
+        for id, file, cat_type in COVID19MX_CATALOG_FILENAMES:
+            catalog_types[id] = cat_type
+        
+        entries = []
+        
+        log.info("Reading main report file from %s"%(filename,))
+        with codecs.open(filename, "r", "utf8", "ignore") as fh:
+            reader = csv.reader(fh)
+            # Read header
+            hdr_row = next(reader)
+            hdr_dict = {}
+            req_hdr_cols = [e.col_header for e in COVID19MX_DIR_MAIN_REPORT_COLS]
+            
+            for index, cell in enumerate(hdr_row):
+                if cell in req_hdr_cols:
+                    hdr_dict[cell] = index
+                else:
+                    log.warning("Uknown hdr entry at col %i under catalog %s: %s"%(index, cat_id, ffilename))
+            
+            # Verify all items were read
+            assert len(hdr_dict) == len(req_hdr_cols), "At catalog %s/%s, unable to get all header items %s from %s"%(cat_id, ffilename, repr(req_hdr_cols), repr(hdr_row),)
+            
+            date_first = True
+            
+            rnum = 1
+            try:
+                
+                for row in reader:
+                    rnum += 1
+                    
+                    entry_values = []
+                
+                    
+                    for known_col in COVID19MX_DIR_MAIN_REPORT_COLS:
+                        raw_val = row[hdr_dict[known_col.col_header]]
+                        
+                        if known_col.entry_type == None:
+                            val = raw_val
+                        elif known_col.entry_type == COVID19MX_COL_DATE:
+                            val = raw_val
+                            if date_first:
+                                log.warning("Date parse is missing")
+                                date_first = False
+                        elif known_col.entry_type in catalogs:
+                            catalog_type = catalog_types[known_col.entry_type]
+                            catalog = catalogs[known_col.entry_type]
+                            
+                            decoded_vals = catalog.get(raw_val, None)
+                            if decoded_vals == None:
+                                val = "<%s>"%(raw_val)
+                            else:
+                                if catalog_type == COVID19MX_CATALOG_TYPE_SIMPLE:
+                                    val = decoded_vals[0]
+                                elif catalog_type == COVID19MX_CATALOG_TYPE_ENTIDADES:
+                                    val = decoded_vals[0]
+                                elif catalog_type == COVID19MX_CATALOG_TYPE_MUNICIPIOS:
+                                    mpio = decoded_vals[0]
+                                    entity_code = decoded_vals[1]
+                                    # Index 1 of entitys, is the entity abbreviation
+                                    entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                    val = "%s, %s"%(mpio, entity_abbrev)
+                                else:
+                                    raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
+                        
+                        entry_values.append(val)
+                    entries.append(COVID19MX_MAIN_REPORT_ENTRY(*entry_values))         
+            
+            except Exception as ex:
+                    log.error("Failed to read COVID19MX main data sheet %s at row %i: %s"%(filename, rnum, ex))
+                    log.info("Last read entry: %s"%("None" if len(entries) == 0 else repr(entries[-1])))
+                    log.debug(traceback.format_exc())
+                    raise Exception("Failed to ready COVID19MX main data sheet")
+                
+        return entries            
+        
+    def _get_covid19mx_main_report(self):
+        log.debug("Looking for the latest MX covid data file under %s"%(COVID19MX_DIR_MAIN_REPORT_DIR, ))
+        months_items = os.listdir(COVID19MX_DIR_MAIN_REPORT_DIR)
+        months_items.sort()
+        months = []
+        for month_dir in months_items:
+            m = COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR.match(month_dir)
+            if m == None: continue
+            months.append(SortedDate(tag = os.path.join(COVID19MX_DIR_MAIN_REPORT_DIR, month_dir), 
+                                     year = m.groupdict()["year"], 
+                                     month = m.groupdict()["month"], 
+                                     day = None))
+        
+        months.sort()
+        latest_month_dir = months[-1].tag
+        log.debug("Top month: %s"%(latest_month_dir, ))
+        
+        day_items = os.listdir(latest_month_dir)
+        day_items.sort()
+        days = []
+        for day_file in day_items:
+            m = COVID19MX_REGEX_MAIN_REPORT_DAY_FILE.match(day_file)
+            if m == None: continue
+            days.append(SortedDate(tag = os.path.join(latest_month_dir, day_file), 
+                                     year = m.groupdict()["year"], 
+                                     month = m.groupdict()["month"], 
+                                     day = m.groupdict()["day"]))
+        days.sort()
+        latest_day_file = os.path.realpath(days[-1].tag)
+        log.info("MX COVID 19 data file: %s"%(latest_day_file, ))
+
+        tmp_dir = tempfile.TemporaryDirectory(prefix = "covid19mx_").name
+        
+        log.debug("Extracting %s to %s"%(latest_day_file, tmp_dir))
+        
+        with zipfile.ZipFile(latest_day_file, 'r') as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        
+        files = os.listdir(tmp_dir)
+        assert len(files) == 1, "Expected 1 file out of the zip file, found %i"%(len(files))
+        
+        return os.path.join(tmp_dir, files[0])
+    
+    def _read_covid19mx_catalogs(self):
+        catalogs = {}
+        for cat_id, filename, cat_type  in COVID19MX_CATALOG_FILENAMES:
+            ffilename = os.path.join(COVID19MX_DIR_CATALOGS, filename)
+            assert os.path.isfile(ffilename), "File for catalog %s is missing: %s"%(cat_id, ffilename)
+            
+            catalog = {}
+            catalogs[cat_id] = catalog
+            
+            log.info("Reading catalog %s"%(ffilename,))
+            with codecs.open(ffilename, "r", "utf8") as fh:
+                reader = csv.reader(fh)
+                # Read header
+                hdr_row = next(reader)
+                hdr_dict = {}
+                req_hdr_cols = COVID19MX_CATALOG_TYPE_HDR_COLS[cat_type]
+                
+                for index, cell in enumerate(hdr_row):
+                    if cell in req_hdr_cols:
+                        hdr_dict[cell] = index
+                    else:
+                        log.warning("Uknown hdr entry at col %i under catalog %s: %s"%(index, cat_id, ffilename))
+                
+                # Verify all items were read
+                assert len(hdr_dict) == len(req_hdr_cols), "At catalog %s/%s, unable to get all header items %s from %s"%(cat_id, ffilename, repr(req_hdr_cols), repr(hdr_row),)
+                
+                rnum = 1
+                for row in reader:
+                    rnum += 1
+                    #for col, index in hdr_dict.items():
+                    #    catalog[col] = row[index]
+                    
+                    # First col at req_hdr_cols/COVID19MX_CATALOG_TYPE_HDR_COLS is the header 
+                    key_col = row[hdr_dict[req_hdr_cols[0]]]
+                    vals = []
+                    
+                    for col in req_hdr_cols[1:]:
+                        vals.append(row[hdr_dict[col]])
+                    
+                    catalog[key_col] = vals
+                    
+        return catalogs       
+                        
+            
     
     def _read_csd(self):
         # Worry about how to receive the filename later
@@ -1002,7 +1321,7 @@ class CoronaBaseData:
                 axis2_enabled = True
             
             if report.data_type in _data_requires_csd_source or (axis2_enabled and report.axis2_data_type in _data_requires_csd_source):
-                assert self.data_source == DATA_SOURCE_CSSEGISSANDATA, "This report requires data available only on source %s"%(_get_data_source_name(self.data_source)) 
+                assert self.config_file.data_source == DATA_SOURCE_CSSEGISSANDATA, "This report requires data available only on source %s"%(_get_data_source_name(self.config_file.data_source)) 
             
             # if country population is required, then limit the countries to export
             if report.data_type in _data_type_needs_population or \
@@ -1416,7 +1735,7 @@ class CoronaBaseData:
             ax2.set_yticks(ax1.get_yticks())
             ax2.set_ylim(ax1.get_ylim())
         
-        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
@@ -1550,7 +1869,7 @@ class CoronaBaseData:
             ax2.set_yticks(ax1.get_yticks())
             ax2.set_ylim(ax1.get_ylim())
         
-        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
@@ -1809,16 +2128,8 @@ def main():
     
     try:
         config_files = get_args()
-        
         config = Parameters(filenames = config_files)
-        
-        population_data = read_population_data(population_name_xlation = config.population_name_xlation)
-        
-        data_source = DATA_SOURCE_CSSEGISSANDATA
-        #data_source = DATA_SOURCE_OURWORLDINDATA
-        
-        corona_data = CoronaBaseData(data_source = data_source, config_file = config)
-        corona_data.set_country_population(population_data)
+        corona_data = CoronaBaseData(config_file = config)
         
         if config.report_dir == "@AUTO":
             dir = report = time.strftime("report_%y%m%d_%H%M%S")
