@@ -174,13 +174,16 @@ _data_display_names = {DATA_TOTAL_CASES:"Total cases",
 
 FILTER_NONE = "none"
 FILTER_TOP_MAX = "top_max"
+FILTER_TOP_MIN = "top_min"
 FILTER_TOP_MAX_MX = "top_max_mx"
 FILTER_COUNTRY_LIST = "country_list"
 _known_filters = (FILTER_NONE,
                   FILTER_TOP_MAX,
+                  FILTER_TOP_MIN,
                   FILTER_TOP_MAX_MX,
                   FILTER_COUNTRY_LIST)
 _filters_with_int_arg = (FILTER_TOP_MAX,
+                         FILTER_TOP_MIN,
                          FILTER_TOP_MAX_MX)
 _filters_with_string_list = (FILTER_COUNTRY_LIST,                       
                        )
@@ -292,6 +295,7 @@ COVID19MX_CATALOG_SEXO          = "catalog_sexo"
 COVID19MX_CATALOG_SI_NO         = "catalog_si_no" 
 COVID19MX_CATALOG_TIPO_PACIENTE = "catalog_tipo_paciente"
 COVID19MX_COL_DATE              = "col_date"
+COVID19MX_COL_STATE             = "col_state"
 COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv",    COVID19MX_CATALOG_TYPE_ENTIDADES), 
                                (COVID19MX_CATALOG_MUNICIPIOS   , "municipios.csv",   COVID19MX_CATALOG_TYPE_MUNICIPIOS),
                                (COVID19MX_CATALOG_NACIONALIDAD , "nacionalidad.csv", COVID19MX_CATALOG_TYPE_SIMPLE),
@@ -301,6 +305,19 @@ COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv"
                                (COVID19MX_CATALOG_SEXO         , "sexo.csv",         COVID19MX_CATALOG_TYPE_SIMPLE),
                                (COVID19MX_CATALOG_SI_NO        , "si_no.csv",        COVID19MX_CATALOG_TYPE_SIMPLE),
                                (COVID19MX_CATALOG_TIPO_PACIENTE, "tipo_paciente.csv",COVID19MX_CATALOG_TYPE_SIMPLE),)
+
+COVID19MX_STATE_DATA_CSV  = os.path.join(_my_path, "..", "covid19mx", "www", "otros", "estados.csv")
+COVID19MX_STATE_DATA_COL_CODE       = "Clave"
+COVID19MX_STATE_DATA_COL_NAME       = "Nombre"
+COVID19MX_STATE_DATA_COL_FULL_NAME  = "Nombre_Completo"
+COVID19MX_STATE_DATA_COL_ABBREV     = "Abreviatura"
+COVID19MX_STATE_DATA_COL_POPULATION = "Poblacion_2019"
+COVID19MX_STATE_DATA_CSV_HDR_COLS = (COVID19MX_STATE_DATA_COL_CODE      ,
+                                     COVID19MX_STATE_DATA_COL_NAME      ,
+                                     COVID19MX_STATE_DATA_COL_FULL_NAME ,
+                                     COVID19MX_STATE_DATA_COL_ABBREV    ,
+                                     COVID19MX_STATE_DATA_COL_POPULATION,
+                                    )
 
 COVID19MX_ALL_COUNTRY_TAG = "Pais Completo"
 
@@ -312,14 +329,15 @@ COVID19MX_DIR_MAIN_REPORT_DIR    = os.path.join(_my_path, "..", "covid19mx", "ww
 COVID19MX_MAIN_REPORT_DATE_REGEX = re.compile("^(?P<year>\d{4})\-(?P<month>\d{2})\-(?P<day>\d{2})$")                    
 COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO = "Positivo SARS-CoV-2"
 
+# Won't use the state catalog to decode states, instead the data from the states sheet which is better
 COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",     "FECHA_ACTUALIZACION",   COVID19MX_COL_DATE),
                                   COVID19MX_COL_ENTRY("ID_REGISTRO",             "ID_REGISTRO",           None),
                                   COVID19MX_COL_ENTRY("ORIGEN",                  "ORIGEN",                COVID19MX_CATALOG_ORIGEN),
                                   COVID19MX_COL_ENTRY("SECTOR",                  "SECTOR",                COVID19MX_CATALOG_SECTOR),
-                                  COVID19MX_COL_ENTRY("ENTIDAD_UM",              "ENTIDAD_UM",            COVID19MX_CATALOG_ENTIDADES),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_UM",              "ENTIDAD_UM",            COVID19MX_COL_STATE),
                                   COVID19MX_COL_ENTRY("SEXO",                    "SEXO",                  COVID19MX_CATALOG_SEXO),
-                                  COVID19MX_COL_ENTRY("ENTIDAD_NAC",             "ENTIDAD_NAC",           COVID19MX_CATALOG_ENTIDADES),
-                                  COVID19MX_COL_ENTRY("ENTIDAD_RES",             "ENTIDAD_RES",           COVID19MX_CATALOG_ENTIDADES),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_NAC",             "ENTIDAD_NAC",           COVID19MX_COL_STATE),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_RES",             "ENTIDAD_RES",           COVID19MX_COL_STATE),
                                   COVID19MX_COL_ENTRY("MUNICIPIO_RES",           "MUNICIPIO_RES",         COVID19MX_CATALOG_MUNICIPIOS),
                                   COVID19MX_COL_ENTRY("TIPO_PACIENTE",           "TIPO_PACIENTE",         COVID19MX_CATALOG_TIPO_PACIENTE),
                                   COVID19MX_COL_ENTRY("FECHA_INGRESO",           "FECHA_INGRESO",         COVID19MX_COL_DATE),
@@ -357,6 +375,7 @@ REPLACEMENTS_REGEX = re.compile("\@[a-zA-Z0-9_]+\@")
 PLOT_DATA_MARGIN_LINEAR = 0.04
 PLOT_DATA_MARGIN_LOG = 0.4
 PLOT_EXTERNAL_FONT_COLOR = "#FFFFFF"
+PLOT_EXTERNAL_FONT_COLOR_WARNING = "#FFC040"
 PLOT_EXTERNAL_BG_COLOR = "#384048"
 PLOT_GRID_COLOR = "#E0F0FF"
     
@@ -648,6 +667,7 @@ class Parameters:
         self.population_name_xlation = None
         self.csd_country_xlation = None
         self.csd_state_xlation = None
+        self.supress_last_n_days = None
         
         while True:
             if index >= len(self._filenames): 
@@ -664,6 +684,9 @@ class Parameters:
             
         if self._has_option("general", "data_source"):
             self.data_source = self._get_option("general", "data_source").strip()
+        
+        if self._has_option("general", "supress_last_n_days"):
+            self.supress_last_n_days = int(self._get_option("general", "supress_last_n_days").strip())
         
         # First read the general section so the includes are processed first
         if self._has_option("general", "report_dir"):
@@ -809,12 +832,12 @@ class CoronaBaseData:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
             population_data = self.read_population_data(population_name_xlation = self.config_file.population_name_xlation)
         elif self.config_file.report_type == REPORT_TYPE_MEXICO:
+            population_data = self._read_covid19mx_state_data()
             if self.config_file.data_source == DATA_SOURCE_COVID19MX:
                 self._read_covid19mx()
             else:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
-            #population_data = self._read_covid19mx_state_data()
-            population_data = None
+            
         else:
             raise Exception("Uknown report type: %s"%(self.config_file.report_type))
         
@@ -880,6 +903,52 @@ class CoronaBaseData:
         
         return data
 
+    def _read_covid19mx_state_data(self):
+        # Population data, to return
+        data = {}
+        self.covid19mx_state_data = {}
+        
+        assert os.path.isfile(COVID19MX_STATE_DATA_CSV), "State data file is missing: %s"%(COVID19MX_STATE_DATA_CSV,)
+        
+        log.info("Reading state data from %s"%(COVID19MX_STATE_DATA_CSV,))
+        with codecs.open(COVID19MX_STATE_DATA_CSV, "r", "utf8") as fh:
+            reader = csv.reader(fh)
+            # Read header
+            hdr_row = next(reader)
+            hdr_dict = {}
+            req_hdr_cols = COVID19MX_STATE_DATA_CSV_HDR_COLS
+            
+            for index, cell in enumerate(hdr_row):
+                if cell in req_hdr_cols:
+                    hdr_dict[cell] = index
+                
+            # Verify all items were read
+            assert len(hdr_dict) == len(req_hdr_cols), "Unable to get all header items %s. Found: %s."%(repr(req_hdr_cols), repr(hdr_row),)
+            
+            total_population = 0
+            rnum = 1
+            for row in reader:
+                rnum += 1
+                
+                d = {}
+                for col in req_hdr_cols:
+                    d[col] = row[hdr_dict[col]]
+                
+                # Need to format the code with a leading zero so it matches the other reports. Should I use integers instead?
+                code = "%02i"%(int(d[COVID19MX_STATE_DATA_COL_CODE]))
+                self.covid19mx_state_data[code] = d
+                
+                pop = int(d[COVID19MX_STATE_DATA_COL_POPULATION])
+                data[d[COVID19MX_STATE_DATA_COL_NAME]] = pop
+                
+                total_population += pop
+                   
+            data[COVID19MX_ALL_COUNTRY_TAG] = total_population   
+                
+        log.debug("State data has keys %s"%(repr(data.keys())))
+                    
+        return data    
+    
     def _read_covid19mx(self):
         catalogs = self._read_covid19mx_catalogs()
         
@@ -915,13 +984,20 @@ class CoronaBaseData:
         all_dates.sort()
         
         self.dates = []
-        self.dates.extend(all_dates)
+        if self.config_file.supress_last_n_days != None:
+            log.warning("Suppressing data from the last %i days"%(self.config_file.supress_last_n_days,))
+            self.dates.extend(all_dates[:-self.config_file.supress_last_n_days])
+        else:
+            self.dates.extend(all_dates)
         
         log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([time.strftime("%Y/%m/%d", time.localtime(d)) for d in all_dates])))
-            
-        all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
-        all_countries.append(COVID19MX_ALL_COUNTRY_TAG)
-        log.debug("Countries to process: (%i) %s"%(len(all_countries), repr(all_countries)))
+         
+        #all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
+        all_countries = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
+        all_countries.sort()
+        all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
+        
+        log.debug("Countries/states to process: (%i) %s"%(len(all_countries), repr(all_countries)))
             
         # Initialize all dictionaries
         dicts = [deaths, positive, negative, tested, pending]
@@ -1047,6 +1123,13 @@ class CoronaBaseData:
                                     val = None
                                 else:
                                     val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
+                        elif known_col.entry_type == COVID19MX_COL_STATE:
+                            if raw_val in self.covid19mx_state_data:
+                                val = self.covid19mx_state_data[raw_val][COVID19MX_STATE_DATA_COL_NAME]
+                            else:
+                                #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
+                                # Check if the state is on the state catalog
+                                val = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][0]
                         elif known_col.entry_type in catalogs:
                             catalog_type = catalog_types[known_col.entry_type]
                             catalog = catalogs[known_col.entry_type]
@@ -1063,7 +1146,8 @@ class CoronaBaseData:
                                     mpio = decoded_vals[0]
                                     entity_code = decoded_vals[1]
                                     # Index 1 of entitys, is the entity abbreviation
-                                    entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                    #entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                    entity_abbrev = self.covid19mx_state_data[entity_code][COVID19MX_STATE_DATA_COL_NAME] if entity_code in self.covid19mx_state_data else catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
                                     val = "%s, %s"%(mpio, entity_abbrev)
                                 else:
                                     raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
@@ -1127,7 +1211,7 @@ class CoronaBaseData:
     def _read_covid19mx_catalogs(self):
         catalogs = {}
         for cat_id, filename, cat_type  in COVID19MX_CATALOG_FILENAMES:
-            ffilename = os.path.join(COVID19MX_DIR_CATALOGS, filename)
+            ffilename = os.path.realpath(os.path.join(COVID19MX_DIR_CATALOGS, filename))
             assert os.path.isfile(ffilename), "File for catalog %s is missing: %s"%(cat_id, ffilename)
             
             catalog = {}
@@ -1164,6 +1248,8 @@ class CoronaBaseData:
                         vals.append(row[hdr_dict[col]])
                     
                     catalog[key_col] = vals
+            
+            log.debug("Catalog %s has keys %s"%(cat_id, repr(catalog.keys())))
                     
         return catalogs       
                         
@@ -1192,6 +1278,9 @@ class CoronaBaseData:
                 if d not in self.dates: 
                     self.dates.append(d)
         self.dates.sort()
+        if self.config_file.supress_last_n_days != None:
+            log.warning("Suppressing data from the last %i days"%(self.config_file.supress_last_n_days,))
+            self.dates = self.dates[:-self.config_file.supress_last_n_days]
         
         countries = []
         for data_dict in (data_confirmed, data_recovered, data_deaths):
@@ -1363,6 +1452,9 @@ class CoronaBaseData:
                     raise Exception("Failed to process data at row %i: %s"%(rnum, ex))
             
             self.dates.sort()
+            if self.config_file.supress_last_n_days != None:
+                log.warning("Suppressing data from the last %i days"%(self.config_file.supress_last_n_days,))
+                self.dates = self.dates[:-self.config_file.supress_last_n_days]
             
             log.info("Read %i entries from %s to %s"%(rnum - 1, 
                                                       _format_date(min(self.dates))  ,
@@ -1856,8 +1948,10 @@ class CoronaBaseData:
             ax2.set_yticks(ax1.get_yticks())
             ax2.set_ylim(ax1.get_ylim())
         
-        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "Data Source:\n%s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        if self.config_file.supress_last_n_days != None:
+            plt.gcf().text(0.8, 0.03, time.strftime("Supressed data from last %i days"%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
         plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         if extra_labels != None:
@@ -2053,7 +2147,7 @@ class CoronaBaseData:
                     selected_countries.append(country)
                 else:
                     log.warning("Country not found on report data, cannot add into filter: %s"%(country,))
-        elif filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX):
+        elif filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX, FILTER_TOP_MIN):
             assert type(filter_value) == int, "Filter value must be an integer"
             max_country_values = {}
             # get the maximum value per country across all dates
@@ -2079,8 +2173,14 @@ class CoronaBaseData:
                 countries.sort()
                 tmp_country_list.extend(countries)
             # Limit the number of countries as requested
-            if len(tmp_country_list) > filter_value:
-                tmp_country_list = tmp_country_list[:filter_value]
+            if filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX):
+                if len(tmp_country_list) > filter_value:
+                    tmp_country_list = tmp_country_list[:filter_value]
+            elif filter == FILTER_TOP_MIN:
+                if len(tmp_country_list) > filter_value:
+                    tmp_country_list = tmp_country_list[filter_value:]
+            else:
+                raise Exception("Internal error")
             if filter == FILTER_TOP_MAX_MX and COUNTRY_MX in report_countries:
                 tmp_country_list.append(COUNTRY_MX)
             # Now, keep the original order of countries
