@@ -280,6 +280,7 @@ COVID19MX_CATALOG_TYPE_HDR_COLS = { COVID19MX_CATALOG_TYPE_SIMPLE     : ("CLAVE"
                                     COVID19MX_CATALOG_TYPE_MUNICIPIOS : ("CLAVE_MUNICIPIO","MUNICIPIO","CLAVE_ENTIDAD"),
                                     COVID19MX_CATALOG_TYPE_ENTIDADES  : ("CLAVE_ENTIDAD","ENTIDAD_FEDERATIVA","ABREVIATURA")}
 
+COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
 COVID19MX_DIR_CATALOGS    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "catalogos")
 COVID19MX_CATALOG_ENTIDADES     = "catalog_entidades"
 COVID19MX_CATALOG_MUNICIPIOS    = "catalog_municipios"
@@ -301,11 +302,15 @@ COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv"
                                (COVID19MX_CATALOG_SI_NO        , "si_no.csv",        COVID19MX_CATALOG_TYPE_SIMPLE),
                                (COVID19MX_CATALOG_TIPO_PACIENTE, "tipo_paciente.csv",COVID19MX_CATALOG_TYPE_SIMPLE),)
 
+COVID19MX_ALL_COUNTRY_TAG = "Pais Completo"
+
 # Will duplicate ID and col_header, just in case one of those changes at some point
 COVID19MX_COL_ENTRY = collections.namedtuple("Covid19MX_Column_Entry", ("ID", "col_header", "entry_type"))
 COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR = re.compile("^(?P<year>\d{4})(?P<month>\d{2})$")
 COVID19MX_REGEX_MAIN_REPORT_DAY_FILE  = re.compile("^(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})\.zip$")
 COVID19MX_DIR_MAIN_REPORT_DIR    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "todos")
+COVID19MX_MAIN_REPORT_DATE_REGEX = re.compile("^(?P<year>\d{4})\-(?P<month>\d{2})\-(?P<day>\d{2})$")                    
+COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO = "Positivo SARS-CoV-2"
 
 COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",     "FECHA_ACTUALIZACION",   COVID19MX_COL_DATE),
                                   COVID19MX_COL_ENTRY("ID_REGISTRO",             "ID_REGISTRO",           None),
@@ -808,11 +813,13 @@ class CoronaBaseData:
                 self._read_covid19mx()
             else:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
-            population_data = self._read_covid19mx_state_data()
+            #population_data = self._read_covid19mx_state_data()
+            population_data = None
         else:
             raise Exception("Uknown report type: %s"%(self.config_file.report_type))
         
-        self.set_country_population(population_data)
+        if population_data != None:
+            self.set_country_population(population_data)
         
     def read_population_data(self,
                              filename = None,
@@ -876,9 +883,113 @@ class CoronaBaseData:
     def _read_covid19mx(self):
         catalogs = self._read_covid19mx_catalogs()
         
-        entries = self._read_covid19mx_entries(catalogs) 
+        entries = self._read_covid19mx_entries(catalogs)
+        
+        # There's five parameters we could measure: Deaths, Positive, recovered, negative, total tested, pending
+        # The reference dates for every data type:
+        # Deaths: FECHA_DEF
+        # Positive: FECHA_SINTOMAS
+        # Recovered: Not supported just yet
+        # Negative: FECHA_SINTOMAS
+        # Tested: FECHA_SINTOMAS
+        # Pending: FECHA_SINTOMAS
+        
+        # {state/country] = {date = count}}
+        dicts = []
+        deaths = {}
+        positive = {}
+        #recovered = {}
+        negative = {}
+        tested = {}
+        pending = {}
+        
+        log.debug("Initializing data dictionaries")
+        # get all the posible dates
+        all_dates = []
+        for e in entries:
+            if e.FECHA_DEF != None and e.FECHA_DEF not in all_dates:
+                all_dates.append(e.FECHA_DEF)
+            if e.FECHA_SINTOMAS != None and e.FECHA_SINTOMAS not in all_dates:
+                all_dates.append(e.FECHA_SINTOMAS)
+        
+        all_dates.sort()
+        
+        self.dates = []
+        self.dates.extend(all_dates)
+        
+        log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([time.strftime("%Y/%m/%d", time.localtime(d)) for d in all_dates])))
+            
+        all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
+        all_countries.append(COVID19MX_ALL_COUNTRY_TAG)
+        log.debug("Countries to process: (%i) %s"%(len(all_countries), repr(all_countries)))
+            
+        # Initialize all dictionaries
+        dicts = [deaths, positive, negative, tested, pending]
+        for d in dicts:
+            #d["Mexico"] = {}
+            #for state in catalogs[COVID19MX_CATALOG_ENTIDADES]:
+            #    d[state[0]] = {}
+            for country in all_countries:
+                d[country] = {}
+                for date in all_dates:
+                    d[country][date] = 0
+        
+        log.info("Sorting data")
+        
+        for entry in entries:
+            state = entry.ENTIDAD_RES
+            # Deaths
+            if entry.FECHA_DEF != None:
+                deaths[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_DEF] += 1
+                deaths[state][entry.FECHA_DEF] += 1
+            # Cases
+            if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO:
+                positive[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
+                positive[state][entry.FECHA_SINTOMAS] += 1
+        
+        
+        log.info("Building data statistics")
+        
+        #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+        last_total_deaths = {}
+        last_total_positive = {}
+        
+        dicts = [last_total_deaths, last_total_positive]
+        for d in dicts:
+            for c in all_countries:
+                d[c] = 0
+        
+        self.data = {}
+        
+        for country in all_countries:
+            self.data[country] = {}
+        
+            for date in all_dates:
+                # Total Deaths
+                prev_val = last_total_deaths[country]
+                if date in deaths[country]:
+                    day_val = deaths[country][date]
+                else:
+                    day_val = 0
+                entry_total_deaths = prev_val + day_val
+                entry_new_deaths = day_val
+                last_total_deaths[country] = entry_total_deaths
+                
+                # Positive Cases
+                prev_val = last_total_positive[country]
+                if date in positive[country]:
+                    day_val = positive[country][date]
+                else:
+                    day_val = 0
+                entry_total_cases = prev_val + day_val
+                entry_new_cases = day_val
+                last_total_positive[country] = entry_total_cases
+                
+                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases)
+                self.data[country][date] = e
+                
     
-        log.info("Read %i MX COVID19 entries"%(len(entries)))
+        
     
     def _read_covid19mx_entries(self, catalogs):
         filename = self._get_covid19mx_main_report()
@@ -917,17 +1028,25 @@ class CoronaBaseData:
                     
                     entry_values = []
                 
-                    
                     for known_col in COVID19MX_DIR_MAIN_REPORT_COLS:
                         raw_val = row[hdr_dict[known_col.col_header]]
                         
                         if known_col.entry_type == None:
                             val = raw_val
                         elif known_col.entry_type == COVID19MX_COL_DATE:
-                            val = raw_val
-                            if date_first:
-                                log.warning("Date parse is missing")
-                                date_first = False
+                            m = COVID19MX_MAIN_REPORT_DATE_REGEX.match(raw_val)
+                            if m == None:
+                                log.warning("Invalid date at row %i, col %s: %s"%(rnum, known_col, raw_val))
+                                val = None
+                            else:
+                                g = m.groupdict()
+                                y = int(g["year"])
+                                m = int(g["month"])
+                                d = int(g["day"])
+                                if y == 9999 and m == 99 and d == 99:
+                                    val = None
+                                else:
+                                    val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
                         elif known_col.entry_type in catalogs:
                             catalog_type = catalog_types[known_col.entry_type]
                             catalog = catalogs[known_col.entry_type]
@@ -957,7 +1076,9 @@ class CoronaBaseData:
                     log.info("Last read entry: %s"%("None" if len(entries) == 0 else repr(entries[-1])))
                     log.debug(traceback.format_exc())
                     raise Exception("Failed to ready COVID19MX main data sheet")
-                
+           
+        log.info("Read %i MX COVID19 entries"%(len(entries)))
+             
         return entries            
         
     def _get_covid19mx_main_report(self):
