@@ -140,37 +140,74 @@ _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M,
                                DATA_TOTAL_RECOVERED_PER_1M,
                                )
 
-_timeline_display_names = {TIMELINE_ORIGINAL:"Date",
-                           TIMELINE_TOTAL_CONFIRMED_CASES:"Total confirmed cases",
-                           TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:"Total confirmed cases / 1M Habs",
-                           TIMELINE_ACTIVE_CASES:"Active cases", 
-                           TIMELINE_FIRST_100_CASES:"Days (0 -> First 100 total cases)",
-                           TIMELINE_FIRST_CASE_PER_10K:"Days (0 -> First case per 10K habs)",
-                           TIMELINE_FIRST_CASE_PER_10M:"Days (0 -> First case per 10M habs)",
-                           TIMELINE_FIRST_CASE_PER_1M:"Days (0 -> First case per 1M habs)",
-                           }
+_data_source_en = "Data Source"
+_data_source_sp = "Datos"
+_generated_on_en = "Generated on"
+_generated_on_sp = "Generado el"
+_supressed_data_from_last_n_days_fmtr_en = "Supressed data from last %i days"
+_supressed_data_from_last_n_days_fmtr_sp = "Datos de los últimos %i dias suprimidos"
+_github_url = "github.com/tonioluna/corona_graphs"
 
-_data_display_names = {DATA_TOTAL_CASES:"Total cases",
-                       DATA_TOTAL_CASES_PER_10K:"Total cases / 10K Habs", 
-                       DATA_TOTAL_CASES_PER_1M:"Total cases / 1M Habs",
-                       DATA_TOTAL_CASES_PER_10M:"Total cases / 10M Habs",
-                       DATA_NEW_CASES:"New cases per day",
-                       DATA_NEW_CASES_PER_1M:"New cases per day / 1M Habs",
-                       DATA_TOTAL_DEATHS:"Total deaths",
-                       DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:"Total deaths / 1K total cases",
-                       DATA_TOTAL_DEATHS_PER_1M:"Total deaths / 1M Habs",
-                       DATA_NEW_DEATHS:"New deaths per day",
-                       DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
-                       DATA_NEW_DEATHS_PER_1K:"New deaths per day / 1K Habs",
-                       DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
-                       DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(From 1K active cases)",
-                       DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(From 1K active cases)",
-                       DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
-                       DATA_ACTIVE_CASES:"Active Cases",
-                       DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
-                       DATA_TOTAL_RECOVERED_PER_1M:"Recovered Cases / 1M Habs",
-                       DATA_TOTAL_RECOVERED:"Recovered Cases",
-                       }
+LANGUAGE_SP = "sp"
+LANGUAGE_EN = "en"
+_known_languages = (LANGUAGE_EN,
+                    LANGUAGE_SP)
+
+_timeline_display_names_sp = {TIMELINE_ORIGINAL:"Fecha",
+                             TIMELINE_TOTAL_CONFIRMED_CASES:"Total de casos confirmados",
+                             TIMELINE_TOTAL_CONFIRMED_CASES_PER_1M:"Total de casos confirmados / 1M Habs",
+                             TIMELINE_ACTIVE_CASES:"Casos activos", 
+                             TIMELINE_FIRST_100_CASES:"Dias (0 -> First 100 total cases)",
+                             TIMELINE_FIRST_CASE_PER_10K:"Dias (0 -> Primer caso por 10K habs)",
+                             TIMELINE_FIRST_CASE_PER_10M:"Dias (0 -> Primer caso por 10M habs)",
+                             TIMELINE_FIRST_CASE_PER_1M:"Dias (0 -> Primer caso por 1M habs)",
+                             }
+
+_data_display_names_en = {DATA_TOTAL_CASES:"Total cases",
+                          DATA_TOTAL_CASES_PER_10K:"Total cases / 10K Habs", 
+                          DATA_TOTAL_CASES_PER_1M:"Total cases / 1M Habs",
+                          DATA_TOTAL_CASES_PER_10M:"Total cases / 10M Habs",
+                          DATA_NEW_CASES:"New cases per day",
+                          DATA_NEW_CASES_PER_1M:"New cases per day / 1M Habs",
+                          DATA_TOTAL_DEATHS:"Total deaths",
+                          DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:"Total deaths / 1K total cases",
+                          DATA_TOTAL_DEATHS_PER_1M:"Total deaths / 1M Habs",
+                          DATA_NEW_DEATHS:"New deaths per day",
+                          DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
+                          DATA_NEW_DEATHS_PER_1K:"New deaths per day / 1K Habs",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(From 1K active cases)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(From 1K active cases)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
+                          DATA_ACTIVE_CASES:"Active Cases",
+                          DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
+                          DATA_TOTAL_RECOVERED_PER_1M:"Recovered Cases / 1M Habs",
+                          DATA_TOTAL_RECOVERED:"Recovered Cases",
+                         }
+
+_data_display_names_sp = {DATA_TOTAL_CASES:"Casos totales",
+                          DATA_TOTAL_CASES_PER_10K:"Casos totales / 10K Habs", 
+                          DATA_TOTAL_CASES_PER_1M:"Casos totales / 1M Habs",
+                          DATA_TOTAL_CASES_PER_10M:"Casos totales / 10M Habs",
+                          DATA_NEW_CASES:"Casos nuevos por día",
+                          DATA_NEW_CASES_PER_1M:"Casos nuevos por día / 1M Habs",
+                          DATA_TOTAL_DEATHS:"Muertes totales",
+                          DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:"Muertes totales / 1K total cases",
+                          DATA_TOTAL_DEATHS_PER_1M:"Muertes totales / 1M Habs",
+                          DATA_NEW_DEATHS:"Muertes nuevas por día",
+                          DATA_NEW_DEATHS_PER_1M:"Muertes nuevas por día / 1M Habs",
+                          DATA_NEW_DEATHS_PER_1K:"Muertes nuevas por día / 1K Habs",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES:"Muertes nuevas por día / Casos activos",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / Casos activos\n(Desde 1K casos activos)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / 1K Casos activos\n(Desde 1K casos activos)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"Muertes nuevas por día / 1K Casos activos",
+                          DATA_ACTIVE_CASES:"Casos activos",
+                          DATA_ACTIVE_CASES_PER_1M:"Casos activos / 1M Habs",
+                          DATA_TOTAL_RECOVERED_PER_1M:"Casos recuperados / 1M Habs",
+                          DATA_TOTAL_RECOVERED:"Casos recuperados",
+                         }
+
+
 
 FILTER_NONE = "none"
 FILTER_TOP_MAX = "top_max"
@@ -233,13 +270,16 @@ DATA_SOURCE_COVID19MX = "covid19mx"
 
 REPORT_TYPE_COUNTRIES = "countries"
 REPORT_TYPE_MEXICO = "mexico"
+REPORT_TYPE_MEXICO_MPIOS = "mexico_municipios"
 
 _known_report_types = (REPORT_TYPE_COUNTRIES,
-                       REPORT_TYPE_MEXICO)
+                       REPORT_TYPE_MEXICO,
+                       REPORT_TYPE_MEXICO_MPIOS)
 
-_known_data_sources = {REPORT_TYPE_COUNTRIES:(DATA_SOURCE_OURWORLDINDATA,
-                                              DATA_SOURCE_CSSEGISSANDATA),
-                       REPORT_TYPE_MEXICO   :(DATA_SOURCE_COVID19MX,)                
+_known_data_sources = {REPORT_TYPE_COUNTRIES   :(DATA_SOURCE_OURWORLDINDATA,
+                                                 DATA_SOURCE_CSSEGISSANDATA),
+                       REPORT_TYPE_MEXICO      :(DATA_SOURCE_COVID19MX,),         
+                       REPORT_TYPE_MEXICO_MPIOS:(DATA_SOURCE_COVID19MX,),               
                       }
 
 DATA_SOURCE_TXT = {DATA_SOURCE_CSSEGISSANDATA : "John Hopkins University - https://github.com/CSSEGISandData/COVID-19",
@@ -296,6 +336,8 @@ COVID19MX_CATALOG_SI_NO         = "catalog_si_no"
 COVID19MX_CATALOG_TIPO_PACIENTE = "catalog_tipo_paciente"
 COVID19MX_COL_DATE              = "col_date"
 COVID19MX_COL_STATE             = "col_state"
+COVID19MX_COL_MPIO_RES          = "col_mpio"
+COVID19MX_COL_MPIO_RES_STATE_COL = "ENTIDAD_RES"
 COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv",    COVID19MX_CATALOG_TYPE_ENTIDADES), 
                                (COVID19MX_CATALOG_MUNICIPIOS   , "municipios.csv",   COVID19MX_CATALOG_TYPE_MUNICIPIOS),
                                (COVID19MX_CATALOG_NACIONALIDAD , "nacionalidad.csv", COVID19MX_CATALOG_TYPE_SIMPLE),
@@ -305,6 +347,22 @@ COVID19MX_CATALOG_FILENAMES = ((COVID19MX_CATALOG_ENTIDADES    , "entidades.csv"
                                (COVID19MX_CATALOG_SEXO         , "sexo.csv",         COVID19MX_CATALOG_TYPE_SIMPLE),
                                (COVID19MX_CATALOG_SI_NO        , "si_no.csv",        COVID19MX_CATALOG_TYPE_SIMPLE),
                                (COVID19MX_CATALOG_TIPO_PACIENTE, "tipo_paciente.csv",COVID19MX_CATALOG_TYPE_SIMPLE),)
+
+COVID19MX_MUNICIPES_DATA_CSV  = os.path.join(_my_path, "..", "covid19mx", "www", "otros", "municipios.csv")
+COVID19MX_MUNICIPES_DATA_COL_STATE_CODE     = "Clave_Entidad"
+COVID19MX_MUNICIPES_DATA_COL_MUNICIPES_CODE = "Clave_Municipio"
+COVID19MX_MUNICIPES_DATA_COL_NAME           = "Nombre"
+COVID19MX_MUNICIPES_DATA_COL_FULL_NAME      = "Compossed_full_name"
+COVID19MX_MUNICIPES_DATA_COL_POPULATION     = "Poblacion_2019"
+COVID19MX_MUNICIPES_DATA_CSV_HDR_COLS = (COVID19MX_MUNICIPES_DATA_COL_STATE_CODE      ,
+                                         COVID19MX_MUNICIPES_DATA_COL_MUNICIPES_CODE      ,
+                                         COVID19MX_MUNICIPES_DATA_COL_NAME ,
+                                         COVID19MX_MUNICIPES_DATA_COL_POPULATION    ,
+                                        )
+COVID19MX_MUNICIPES_DATA_CSV_HDR_COLS_INT = (COVID19MX_MUNICIPES_DATA_COL_STATE_CODE      ,
+                                             COVID19MX_MUNICIPES_DATA_COL_MUNICIPES_CODE  ,
+                                             COVID19MX_MUNICIPES_DATA_COL_POPULATION,
+                                            )
 
 COVID19MX_STATE_DATA_CSV  = os.path.join(_my_path, "..", "covid19mx", "www", "otros", "estados.csv")
 COVID19MX_STATE_DATA_COL_CODE       = "Clave"
@@ -318,6 +376,10 @@ COVID19MX_STATE_DATA_CSV_HDR_COLS = (COVID19MX_STATE_DATA_COL_CODE      ,
                                      COVID19MX_STATE_DATA_COL_ABBREV    ,
                                      COVID19MX_STATE_DATA_COL_POPULATION,
                                     )
+COVID19MX_STATE_DATA_CSV_HDR_COLS_INT = (COVID19MX_STATE_DATA_COL_CODE      ,
+                                         COVID19MX_STATE_DATA_COL_POPULATION,
+                                         )
+
 
 COVID19MX_ALL_COUNTRY_TAG = "Pais Completo"
 
@@ -325,6 +387,7 @@ COVID19MX_ALL_COUNTRY_TAG = "Pais Completo"
 COVID19MX_COL_ENTRY = collections.namedtuple("Covid19MX_Column_Entry", ("ID", "col_header", "entry_type"))
 COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR = re.compile("^(?P<year>\d{4})(?P<month>\d{2})$")
 COVID19MX_REGEX_MAIN_REPORT_DAY_FILE  = re.compile("^(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})\.zip$")
+COVID19MX_REGEX_MAIN_REPORT_DAY_FILE_CSV  = re.compile("^(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})\.csv$")
 COVID19MX_DIR_MAIN_REPORT_DIR    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "todos")
 COVID19MX_MAIN_REPORT_DATE_REGEX = re.compile("^(?P<year>\d{4})\-(?P<month>\d{2})\-(?P<day>\d{2})$")                    
 COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO = "Positivo SARS-CoV-2"
@@ -337,8 +400,8 @@ COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",    
                                   COVID19MX_COL_ENTRY("ENTIDAD_UM",              "ENTIDAD_UM",            COVID19MX_COL_STATE),
                                   COVID19MX_COL_ENTRY("SEXO",                    "SEXO",                  COVID19MX_CATALOG_SEXO),
                                   COVID19MX_COL_ENTRY("ENTIDAD_NAC",             "ENTIDAD_NAC",           COVID19MX_COL_STATE),
-                                  COVID19MX_COL_ENTRY("ENTIDAD_RES",             "ENTIDAD_RES",           COVID19MX_COL_STATE),
-                                  COVID19MX_COL_ENTRY("MUNICIPIO_RES",           "MUNICIPIO_RES",         COVID19MX_CATALOG_MUNICIPIOS),
+                                  COVID19MX_COL_ENTRY("ENTIDAD_RES",             COVID19MX_COL_MPIO_RES_STATE_COL,  COVID19MX_COL_STATE),
+                                  COVID19MX_COL_ENTRY("MUNICIPIO_RES",           "MUNICIPIO_RES",         COVID19MX_COL_MPIO_RES),
                                   COVID19MX_COL_ENTRY("TIPO_PACIENTE",           "TIPO_PACIENTE",         COVID19MX_CATALOG_TIPO_PACIENTE),
                                   COVID19MX_COL_ENTRY("FECHA_INGRESO",           "FECHA_INGRESO",         COVID19MX_COL_DATE),
                                   COVID19MX_COL_ENTRY("FECHA_SINTOMAS",          "FECHA_SINTOMAS",        COVID19MX_COL_DATE),
@@ -368,6 +431,7 @@ COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",    
                                  )
 # Create the collection for each row entry
 COVID19MX_MAIN_REPORT_ENTRY = collections.namedtuple("COVID19MX_MAIN_REPORT_ENTRY", [e.ID for e in COVID19MX_DIR_MAIN_REPORT_COLS])
+COVID19MX_MAIN_REPORT_MAX_TOLERATED_ROW_ERRORS = 10
 
 REPLACEMENTS_REGEX = re.compile("\@[a-zA-Z0-9_]+\@")
 
@@ -380,7 +444,9 @@ PLOT_EXTERNAL_BG_COLOR = "#384048"
 PLOT_GRID_COLOR = "#E0F0FF"
     
 SEQUENCE_DATE_INCREMENTAL = "date_incremental"
-_known_sequence_types = (SEQUENCE_DATE_INCREMENTAL,)
+SEQUENCE_COVID19MX_REPORT_ITERATION = "covid19mx_report_iteration"
+_known_sequence_types = (SEQUENCE_DATE_INCREMENTAL,
+                         SEQUENCE_COVID19MX_REPORT_ITERATION)
     
 #_plot_line_styles = ((2, 2, 10, 2),  # 2pt line, 2pt break, 10pt line, 2pt break
 #                     (1, 1,  5, 1),
@@ -417,6 +483,9 @@ class SortedDate:
         self.year = int(year)
         self.month = int(month)
         self.day = None if day == None else int(day)
+        self.date = None 
+        if self.day != None:
+            self.date = time.mktime(time.strptime("%s/%s/%s"%(self.month, self.day, self.year), "%m/%d/%Y"))
         
     def __lt__(self, other):
         return self._cmp(other) < 0
@@ -451,7 +520,7 @@ def init_logger():
     filename = _me + ".log"
     with open(filename, "w") as fh:
         fh.write("Starting on %s running from %s"%(time.ctime(), repr(sys.argv)))
-    fh = logging.FileHandler(filename = filename)
+    fh = logging.FileHandler(filename = filename,  encoding = "UTF-8")
     fh.setLevel(logging.DEBUG)
     
     
@@ -548,7 +617,8 @@ class Report:
             if self.filter in _filters_with_int_arg:
                 arg = int(arg)
             elif self.filter in _filters_with_string_list:
-                arg = [s.strip() for s in arg.split(",")]
+                arg = arg.replace("\\,", "__ESCAPED_COMMA__")
+                arg = [s.strip().replace("__ESCAPED_COMMA__", ",") for s in arg.split(",")]
             self.filter_value = arg
         
         if params._has_option(section, "plot_x_range"):
@@ -668,6 +738,7 @@ class Parameters:
         self.csd_country_xlation = None
         self.csd_state_xlation = None
         self.supress_last_n_days = None
+        self.language = None
         
         while True:
             if index >= len(self._filenames): 
@@ -681,6 +752,10 @@ class Parameters:
     def _read_general_options(self, dir):
         if self._has_option("general", "report_type"):
             self.report_type = self._get_option("general", "report_type").strip()
+            
+        if self._has_option("general", "language"):
+            self.language = self._get_option("general", "language").strip()
+            assert self.language in _known_languages
             
         if self._has_option("general", "data_source"):
             self.data_source = self._get_option("general", "data_source").strip()
@@ -815,7 +890,12 @@ def strToBool(txt):
                     ""%(repr(txt), ",".join(_true_values), ",".join(_false_values),))
                    
 class CoronaBaseData:
-    def __init__(self, config_file, csv_filename = None, data_source = DATA_SOURCE_OURWORLDINDATA, report_type = REPORT_TYPE_COUNTRIES):
+    def __init__(self, 
+                 config_file, 
+                 csv_filename = None, 
+                 data_source = DATA_SOURCE_OURWORLDINDATA, 
+                 report_type = REPORT_TYPE_COUNTRIES,
+                 covid19mx_force_report = None):
         self.csv_filename = csv_filename
         self.config_file = config_file
         
@@ -833,8 +913,17 @@ class CoronaBaseData:
             population_data = self.read_population_data(population_name_xlation = self.config_file.population_name_xlation)
         elif self.config_file.report_type == REPORT_TYPE_MEXICO:
             population_data = self._read_covid19mx_state_data()
+            self._read_covid19mx_municipes_data()
             if self.config_file.data_source == DATA_SOURCE_COVID19MX:
-                self._read_covid19mx()
+                self._read_covid19mx(covid19mx_force_report)
+            else:
+                raise Exception("Uknown source: %s"%(self.config_file.data_source))
+            
+        elif self.config_file.report_type == REPORT_TYPE_MEXICO_MPIOS:
+            self._read_covid19mx_state_data()
+            population_data = self._read_covid19mx_municipes_data()
+            if self.config_file.data_source == DATA_SOURCE_COVID19MX:
+                self._read_covid19mx_municipes(covid19mx_force_report)
             else:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
             
@@ -903,6 +992,77 @@ class CoronaBaseData:
         
         return data
 
+    def _read_covid19mx_municipes_data(self):
+        # Population data, to return
+        data = {}
+        self.covid19mx_municipes_data = {}
+        
+        assert os.path.isfile(COVID19MX_MUNICIPES_DATA_CSV), "Municipe data file is missing: %s"%(COVID19MX_MUNICIPES_DATA_CSV,)
+        
+        log.info("Reading municipes data from %s"%(COVID19MX_MUNICIPES_DATA_CSV,))
+        with codecs.open(COVID19MX_MUNICIPES_DATA_CSV, "r", "utf8") as fh:
+            reader = csv.reader(fh)
+            # Read header
+            hdr_row = next(reader)
+            hdr_dict = {}
+            req_hdr_cols = COVID19MX_MUNICIPES_DATA_CSV_HDR_COLS
+            
+            for index, cell in enumerate(hdr_row):
+                if cell in req_hdr_cols:
+                    hdr_dict[cell] = index
+                
+            # Verify all items were read
+            assert len(hdr_dict) == len(req_hdr_cols), "Unable to get all header items %s. Found: %s."%(repr(req_hdr_cols), repr(hdr_row),)
+            
+            state_pop = {}
+            for k in [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]:
+                state_pop[k] = 0
+            
+            total_population = 0
+            rnum = 1
+            for row in reader:
+                rnum += 1
+                
+                d = {}
+                for col in req_hdr_cols:
+                    v = row[hdr_dict[col]]
+                    if col in COVID19MX_MUNICIPES_DATA_CSV_HDR_COLS_INT:
+                        try:
+                            v = int(v)
+                        except:
+                            log.warning("Failed to convert to integer the value %s from row %i"%(v, rnum))
+                            v = None
+                    d[col] = v 
+                
+                # Need to format the code with a leading zero so it matches the other reports. Should I use integers instead?
+                state_code = d[COVID19MX_MUNICIPES_DATA_COL_STATE_CODE]
+                mpio_code =  d[COVID19MX_MUNICIPES_DATA_COL_MUNICIPES_CODE]
+                
+                self.covid19mx_municipes_data["%i_%i"%(mpio_code, state_code)] = d
+                
+                state_abbrev = self.covid19mx_state_data[state_code][COVID19MX_STATE_DATA_COL_ABBREV]
+                state_name = self.covid19mx_state_data[state_code][COVID19MX_STATE_DATA_COL_NAME]
+                full_mpio_name = "%s, %s"%(d[COVID19MX_MUNICIPES_DATA_COL_NAME], state_abbrev)
+                
+                d[COVID19MX_MUNICIPES_DATA_COL_FULL_NAME] = full_mpio_name
+                
+                pop = d[COVID19MX_MUNICIPES_DATA_COL_POPULATION]
+                if pop == None:
+                    log.warning("Population for %s is not available: %s"%(full_mpio_name, pop))
+                    continue
+                
+                data[full_mpio_name] = pop
+                state_pop[state_name] += pop
+                total_population += pop
+               
+            for state, pop in state_pop.items():
+                data[state] = pop    
+            data[COVID19MX_ALL_COUNTRY_TAG] = total_population   
+                
+        log.debug("Municipe data has keys %s"%(repr(data.keys())))
+                    
+        return data    
+    
     def _read_covid19mx_state_data(self):
         # Population data, to return
         data = {}
@@ -932,10 +1092,17 @@ class CoronaBaseData:
                 
                 d = {}
                 for col in req_hdr_cols:
-                    d[col] = row[hdr_dict[col]]
+                    v = row[hdr_dict[col]]
+                    if col in COVID19MX_STATE_DATA_CSV_HDR_COLS_INT:
+                        try:
+                            v = int(v)
+                        except:
+                            log.warning("Failed to convert to integer the value %s from row %i"%(v, rnum))
+                            v = None
+                    d[col] = v 
                 
                 # Need to format the code with a leading zero so it matches the other reports. Should I use integers instead?
-                code = "%02i"%(int(d[COVID19MX_STATE_DATA_COL_CODE]))
+                code = d[COVID19MX_STATE_DATA_COL_CODE]
                 self.covid19mx_state_data[code] = d
                 
                 pop = int(d[COVID19MX_STATE_DATA_COL_POPULATION])
@@ -949,12 +1116,12 @@ class CoronaBaseData:
                     
         return data    
     
-    def _read_covid19mx(self):
+    def _read_covid19mx(self, covid19mx_force_report = None):
         catalogs = self._read_covid19mx_catalogs()
         
-        entries = self._read_covid19mx_entries(catalogs)
+        entries = self._read_covid19mx_entries(catalogs, covid19mx_force_report)
         
-        # There's five parameters we could measure: Deaths, Positive, recovered, negative, total tested, pending
+        # T1's five parameters we could measure: Deaths, Positive, recovered, negative, total tested, pending
         # The reference dates for every data type:
         # Deaths: FECHA_DEF
         # Positive: FECHA_SINTOMAS
@@ -1064,11 +1231,135 @@ class CoronaBaseData:
                 e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases)
                 self.data[country][date] = e
                 
+    def _read_covid19mx_municipes(self, covid19mx_force_report = None):
+        catalogs = self._read_covid19mx_catalogs()
+        
+        entries = self._read_covid19mx_entries(catalogs, covid19mx_force_report)
+        
+        # There's five parameters we could measure: Deaths, Positive, recovered, negative, total tested, pending
+        # The reference dates for every data type:
+        # Deaths: FECHA_DEF
+        # Positive: FECHA_SINTOMAS
+        # Recovered: Not supported just yet
+        # Negative: FECHA_SINTOMAS
+        # Tested: FECHA_SINTOMAS
+        # Pending: FECHA_SINTOMAS
+        
+        # {state/country] = {date = count}}
+        dicts = []
+        deaths = {}
+        positive = {}
+        #recovered = {}
+        negative = {}
+        tested = {}
+        pending = {}
+        
+        log.debug("Initializing data dictionaries")
+        # get all the posible dates
+        all_dates = []
+        for e in entries:
+            if e.FECHA_DEF != None and e.FECHA_DEF not in all_dates:
+                all_dates.append(e.FECHA_DEF)
+            if e.FECHA_SINTOMAS != None and e.FECHA_SINTOMAS not in all_dates:
+                all_dates.append(e.FECHA_SINTOMAS)
+        
+        all_dates.sort()
+        
+        self.dates = []
+        if self.config_file.supress_last_n_days != None:
+            log.warning("Suppressing data from the last %i days"%(self.config_file.supress_last_n_days,))
+            self.dates.extend(all_dates[:-self.config_file.supress_last_n_days])
+        else:
+            self.dates.extend(all_dates)
+        
+        log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([time.strftime("%Y/%m/%d", time.localtime(d)) for d in all_dates])))
+         
+        #all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
+        all_countries = [d[COVID19MX_MUNICIPES_DATA_COL_FULL_NAME] for d in self.covid19mx_municipes_data.values()]
+        all_countries.sort()
+        # Insert also all states
+        all_states = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
+        all_states.sort()
+        all_countries.extend(all_states)
+        # And the whole country
+        all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
+        
+        log.debug("Countries/states/Municipes to process: (%i) %s"%(len(all_countries), repr(all_countries)))
+            
+        # Initialize all dictionaries
+        dicts = [deaths, positive, negative, tested, pending]
+        for d in dicts:
+            #d["Mexico"] = {}
+            #for state in catalogs[COVID19MX_CATALOG_ENTIDADES]:
+            #    d[state[0]] = {}
+            for country in all_countries:
+                d[country] = {}
+                for date in all_dates:
+                    d[country][date] = 0
+        
+        log.info("Sorting data")
+        
+        for entry in entries:
+            state = entry.ENTIDAD_RES
+            municipe = entry.MUNICIPIO_RES
+            if municipe == None: 
+                continue
+            mpio_code ="%s_%s"%(municipe, state) 
+            # Deaths
+            if entry.FECHA_DEF != None:
+                deaths[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_DEF] += 1
+                deaths[state][entry.FECHA_DEF] += 1
+                deaths[municipe][entry.FECHA_DEF] += 1
+            # Cases
+            if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO:
+                positive[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
+                positive[state][entry.FECHA_SINTOMAS] += 1
+                positive[municipe][entry.FECHA_SINTOMAS] += 1
+        
+        log.info("Building data statistics")
+        
+        #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+        last_total_deaths = {}
+        last_total_positive = {}
+        
+        dicts = [last_total_deaths, last_total_positive]
+        for d in dicts:
+            for c in all_countries:
+                d[c] = 0
+        
+        self.data = {}
+        
+        for country in all_countries:
+            self.data[country] = {}
+        
+            for date in all_dates:
+                # Total Deaths
+                prev_val = last_total_deaths[country]
+                if date in deaths[country]:
+                    day_val = deaths[country][date]
+                else:
+                    day_val = 0
+                entry_total_deaths = prev_val + day_val
+                entry_new_deaths = day_val
+                last_total_deaths[country] = entry_total_deaths
+                
+                # Positive Cases
+                prev_val = last_total_positive[country]
+                if date in positive[country]:
+                    day_val = positive[country][date]
+                else:
+                    day_val = 0
+                entry_total_cases = prev_val + day_val
+                entry_new_cases = day_val
+                last_total_positive[country] = entry_total_cases
+                
+                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases)
+                self.data[country][date] = e
+                
     
         
-    
-    def _read_covid19mx_entries(self, catalogs):
-        filename = self._get_covid19mx_main_report()
+    def _read_covid19mx_entries(self, catalogs, covid19mx_force_report = None):
+        filename = self._get_covid19mx_main_report(covid19mx_force_report)
         
         # Create a dictionary of catalog types
         catalog_types = {}
@@ -1096,64 +1387,111 @@ class CoronaBaseData:
             
             date_first = True
             
+            row_errors = 0
             rnum = 1
             try:
                 
                 for row in reader:
                     rnum += 1
                     
+                    if rnum % 10000 == 0:
+                        sys.stdout.write(" At row %iK\r"%(rnum/1000, ))
+                        sys.stdout.flush()
+                    
                     entry_values = []
                 
                     for known_col in COVID19MX_DIR_MAIN_REPORT_COLS:
                         raw_val = row[hdr_dict[known_col.col_header]]
-                        
-                        if known_col.entry_type == None:
-                            val = raw_val
-                        elif known_col.entry_type == COVID19MX_COL_DATE:
-                            m = COVID19MX_MAIN_REPORT_DATE_REGEX.match(raw_val)
-                            if m == None:
-                                log.warning("Invalid date at row %i, col %s: %s"%(rnum, known_col, raw_val))
-                                val = None
-                            else:
-                                g = m.groupdict()
-                                y = int(g["year"])
-                                m = int(g["month"])
-                                d = int(g["day"])
-                                if y == 9999 and m == 99 and d == 99:
+                        try:
+                            if known_col.entry_type == None:
+                                val = raw_val
+                            elif known_col.entry_type == COVID19MX_COL_DATE:
+                                m = COVID19MX_MAIN_REPORT_DATE_REGEX.match(raw_val)
+                                if m == None:
+                                    log.warning("Invalid date at row %i, col %s: %s"%(rnum, known_col, raw_val))
                                     val = None
                                 else:
-                                    val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
-                        elif known_col.entry_type == COVID19MX_COL_STATE:
-                            if raw_val in self.covid19mx_state_data:
-                                val = self.covid19mx_state_data[raw_val][COVID19MX_STATE_DATA_COL_NAME]
-                            else:
-                                #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
-                                # Check if the state is on the state catalog
-                                val = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][0]
-                        elif known_col.entry_type in catalogs:
-                            catalog_type = catalog_types[known_col.entry_type]
-                            catalog = catalogs[known_col.entry_type]
-                            
-                            decoded_vals = catalog.get(raw_val, None)
-                            if decoded_vals == None:
-                                val = "<%s>"%(raw_val)
-                            else:
-                                if catalog_type == COVID19MX_CATALOG_TYPE_SIMPLE:
-                                    val = decoded_vals[0]
-                                elif catalog_type == COVID19MX_CATALOG_TYPE_ENTIDADES:
-                                    val = decoded_vals[0]
-                                elif catalog_type == COVID19MX_CATALOG_TYPE_MUNICIPIOS:
-                                    mpio = decoded_vals[0]
-                                    entity_code = decoded_vals[1]
-                                    # Index 1 of entitys, is the entity abbreviation
-                                    #entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
-                                    entity_abbrev = self.covid19mx_state_data[entity_code][COVID19MX_STATE_DATA_COL_NAME] if entity_code in self.covid19mx_state_data else catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
-                                    val = "%s, %s"%(mpio, entity_abbrev)
+                                    g = m.groupdict()
+                                    y = int(g["year"])
+                                    m = int(g["month"])
+                                    d = int(g["day"])
+                                    if y == 9999 and m == 99 and d == 99:
+                                        val = None
+                                    else:
+                                        val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
+                            elif known_col.entry_type == COVID19MX_COL_STATE:
+                                try:
+                                    iraw_val = int(raw_val)
+                                except Exception as ex:
+                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
+                                if iraw_val in self.covid19mx_state_data:
+                                    val = self.covid19mx_state_data[iraw_val][COVID19MX_STATE_DATA_COL_NAME]
                                 else:
-                                    raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
-                        
-                        entry_values.append(val)
-                    entries.append(COVID19MX_MAIN_REPORT_ENTRY(*entry_values))         
+                                    #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
+                                    # Check if the state is on the state catalog
+                                    val = catalogs[COVID19MX_CATALOG_ENTIDADES][raw_val][0]
+                                    #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile state key is %s"%(iraw_val,))
+                            elif known_col.entry_type == COVID19MX_COL_MPIO_RES:
+                                try:
+                                    iraw_val = int(raw_val)
+                                except Exception as ex:
+                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
+                                mpio_code = iraw_val
+                                # Get the state code. It should be from the residency state
+                                state_code = row[hdr_dict[COVID19MX_COL_MPIO_RES_STATE_COL]]
+                                try:
+                                    state_code = int(state_code)
+                                except Exception as ex:
+                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(state_code, COVID19MX_COL_MPIO_RES_STATE_COL, rnum))
+                                
+                                key = "%i_%i"%(mpio_code, state_code)
+                                
+                                if key in self.covid19mx_municipes_data:
+                                    val = self.covid19mx_municipes_data[key][COVID19MX_MUNICIPES_DATA_COL_FULL_NAME]
+                                else:
+                                    log.warning("Invalid residency municipe code %s (mpio, state) at row %i."%(key, rnum))
+                                    val = None
+                                    #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
+                                    # Check if the state is on the state catalog
+                                    #val = catalogs[COVID19MX_CATALOG_MUNICIPIOS][entity_code][0]
+                                    #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile mpio key is %s"%(key,))
+                            elif known_col.entry_type in catalogs:
+                                catalog_type = catalog_types[known_col.entry_type]
+                                catalog = catalogs[known_col.entry_type]
+                                
+                                decoded_vals = catalog.get(raw_val, None)
+                                if decoded_vals == None:
+                                    val = "<%s>"%(raw_val)
+                                else:
+                                    if catalog_type == COVID19MX_CATALOG_TYPE_SIMPLE:
+                                        val = decoded_vals[0]
+                                    # These have been replaced to fetch data from the population sheets. If needed, the code below will need updates
+                                    #elif catalog_type == COVID19MX_CATALOG_TYPE_ENTIDADES:
+                                    #    val = decoded_vals[0]
+                                    #elif catalog_type == COVID19MX_CATALOG_TYPE_MUNICIPIOS:
+                                    #    mpio = decoded_vals[0]
+                                    #    entity_code = decoded_vals[1]
+                                    #    # Index 1 of entitys, is the entity abbreviation
+                                    #    #entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                    #    entity_abbrev = self.covid19mx_state_data[entity_code][COVID19MX_STATE_DATA_COL_ABBREV] if entity_code in self.covid19mx_state_data else catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                    #    val = "%s, %s"%(mpio, entity_abbrev)
+                                    else:
+                                        raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
+                            
+                            entry_values.append(val)
+                        except Exception as ex:
+                            log.error("Failed to read COVID19MX main data sheet %s at row %i, column %s with value %s: %s"
+                                      ""%(filename, rnum, known_col.ID, raw_val, ex))
+                            log.debug(traceback.format_exc())
+                            row_errors += 1
+                            if row_errors > COVID19MX_MAIN_REPORT_MAX_TOLERATED_ROW_ERRORS:
+                                raise Exception("Failed to ready COVID19MX main data sheet, exceeded number of errors")
+                            
+                            entry_values = None
+                            break
+                    
+                    if entry_values != None: 
+                        entries.append(COVID19MX_MAIN_REPORT_ENTRY(*entry_values))         
             
             except Exception as ex:
                     log.error("Failed to read COVID19MX main data sheet %s at row %i: %s"%(filename, rnum, ex))
@@ -1165,35 +1503,8 @@ class CoronaBaseData:
              
         return entries            
         
-    def _get_covid19mx_main_report(self):
-        log.debug("Looking for the latest MX covid data file under %s"%(COVID19MX_DIR_MAIN_REPORT_DIR, ))
-        months_items = os.listdir(COVID19MX_DIR_MAIN_REPORT_DIR)
-        months_items.sort()
-        months = []
-        for month_dir in months_items:
-            m = COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR.match(month_dir)
-            if m == None: continue
-            months.append(SortedDate(tag = os.path.join(COVID19MX_DIR_MAIN_REPORT_DIR, month_dir), 
-                                     year = m.groupdict()["year"], 
-                                     month = m.groupdict()["month"], 
-                                     day = None))
-        
-        months.sort()
-        latest_month_dir = months[-1].tag
-        log.debug("Top month: %s"%(latest_month_dir, ))
-        
-        day_items = os.listdir(latest_month_dir)
-        day_items.sort()
-        days = []
-        for day_file in day_items:
-            m = COVID19MX_REGEX_MAIN_REPORT_DAY_FILE.match(day_file)
-            if m == None: continue
-            days.append(SortedDate(tag = os.path.join(latest_month_dir, day_file), 
-                                     year = m.groupdict()["year"], 
-                                     month = m.groupdict()["month"], 
-                                     day = m.groupdict()["day"]))
-        days.sort()
-        latest_day_file = os.path.realpath(days[-1].tag)
+    def _get_covid19mx_main_report(self, covid19mx_force_report = None):
+        latest_day_file = covid19mx_force_report if covid19mx_force_report != None else os.path.realpath(_get_covid19mx_reports()[-1].tag)
         log.info("MX COVID 19 data file: %s"%(latest_day_file, ))
 
         tmp_dir = tempfile.TemporaryDirectory(prefix = "covid19mx_").name
@@ -1204,7 +1515,11 @@ class CoronaBaseData:
             zip_ref.extractall(tmp_dir)
         
         files = os.listdir(tmp_dir)
-        assert len(files) == 1, "Expected 1 file out of the zip file, found %i"%(len(files))
+        matches = []
+        for f in files:
+            if COVID19MX_REGEX_MAIN_REPORT_DAY_FILE_CSV.match(f):
+                matches.append(f)
+        assert len(matches) == 1, "Expected 1 csv matched file out of the zip file, found %i: %s (out of %s)"%(len(matches), repr(matches), repr(files))
         
         return os.path.join(tmp_dir, files[0])
     
@@ -1466,55 +1781,64 @@ class CoronaBaseData:
             if country not in pop_data:
                 log.warning("No population data available for %s"%(country))
             else:
+                log.debug("Population of %s: %i"%(repr(country), pop_data[country]))
                 self.population[country] = pop_data[country]
+                
     
-    def export(self, report):
-        if not report.sequence_do_export:
-            self._country_label_order = None
-            self._export(report)
-        else:
-            if report.sequence_type == SEQUENCE_DATE_INCREMENTAL:
-                # Calculate the range to go over
-                self._country_label_order = []
-                first_ok_frame = None
-                for index, date in enumerate(self.dates):
-                    if index == 0: continue
-                    self.date_limit_min = None
-                    self.date_limit_top = date
-                    report.filename_postfix = ".frame_%03i"%(index,)
-                    props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
-                    date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
-                    filename = self._export(report, plot_args = dict(extra_labels = [date_legend]))
-                    if filename != None:
-                        if first_ok_frame == None:
-                            first_ok_frame = index
+    def export(self, report, covid19mx_iter_report_date = None):
+        if report.sequence_do_export and report.sequence_type == SEQUENCE_DATE_INCREMENTAL:
+            assert covid19mx_iter_report_date == None, "Internal Error"
+            filenames = []
+            # Calculate the range to go over
+            self._country_label_order = []
+            first_ok_frame = None
+            for index, date in enumerate(self.dates):
+                if index == 0: continue
+                self.date_limit_min = None
+                self.date_limit_top = date
+                report.filename_postfix = ".frame_%03i"%(index,)
+                props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
+                date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
+                filename = self._export(report, plot_args = dict(extra_labels = [date_legend]))
+                if filename != None:
+                    filenames.append(filename)
+                    if first_ok_frame == None:
+                        first_ok_frame = index
+                else:
+                    first_ok_frame = None
+                    
+            if report.sequence_clone_last_frame != None:
+                log.info("Copying last frame %s %i times"%(filename, report.sequence_clone_last_frame))
+                for i in range(0, report.sequence_clone_last_frame):
+                    new_file = filename.replace(report.filename_postfix, ".frame_%03i"%(len(self.dates) + i))
+                    shutil.copy(src = filename, dst = new_file)
+
+            if report.sequence_do_postprocess:
+                cmd = report.sequence_postprocess_command
+                cmd = cmd.replace("#FILENAME_WILDCARD#", os.path.basename(filename.replace(report.filename_postfix, ".frame_%03d")))
+                cmd = cmd.replace("#REPORT_NAME#", report.ID)
+                cmd = cmd.replace("#FIRST_OK_FRAME#", str(first_ok_frame))
+                cwd = os.getcwd()
+                try:
+                    d = os.path.dirname(filename)
+                    log.info("Post-processing sequence at %s with command %s"%(d, cmd))
+                    os.chdir(d)
+                    ec = os.system(cmd)
+                    if ec != 0:
+                        log.error("Failed to prostprocess, exit code %i"%(ec,))
                     else:
-                        first_ok_frame = None
-                    
-                if report.sequence_clone_last_frame != None:
-                    log.info("Copying last frame %s %i times"%(filename, report.sequence_clone_last_frame))
-                    for i in range(0, report.sequence_clone_last_frame):
-                        new_file = filename.replace(report.filename_postfix, ".frame_%03i"%(len(self.dates) + i))
-                        shutil.copy(src = filename, dst = new_file)
-    
-                if report.sequence_do_postprocess:
-                    cmd = report.sequence_postprocess_command
-                    cmd = cmd.replace("#FILENAME_WILDCARD#", os.path.basename(filename.replace(report.filename_postfix, ".frame_%03d")))
-                    cmd = cmd.replace("#REPORT_NAME#", report.ID)
-                    cmd = cmd.replace("#FIRST_OK_FRAME#", str(first_ok_frame))
-                    cwd = os.getcwd()
-                    try:
-                        d = os.path.dirname(filename)
-                        log.info("Post-processing sequence at %s with command %s"%(d, cmd))
-                        os.chdir(d)
-                        ec = os.system(cmd)
-                        if ec != 0:
-                            log.error("Failed to prostprocess, exit code %i"%(ec,))
-                        else:
-                            log.info("Sequence postprocessing finished ok")
-                    finally:
-                        os.chdir(cwd)
-                    
+                        log.info("Sequence postprocessing finished ok")
+                finally:
+                    os.chdir(cwd)
+            return filenames
+        elif covid19mx_iter_report_date != None:
+            props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
+            date_legend = dict(x = 0.78, y = 0.17, s = _format_date(covid19mx_iter_report_date), fontsize=7, color="#000000", bbox=props)
+            return self._export(report, plot_args = dict(extra_labels = [date_legend]))
+        else:
+            self._country_label_order = None
+            return self._export(report)
+
                     
     def _export(self,
                report,
@@ -1948,11 +2272,11 @@ class CoronaBaseData:
             ax2.set_yticks(ax1.get_yticks())
             ax2.set_ylim(ax1.get_ylim())
         
-        plt.gcf().text(0.01, 0.01, "Data Source:\n%s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
-        plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "%s:\n%s"%(_data_source, _get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.98, _github_url, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         if self.config_file.supress_last_n_days != None:
-            plt.gcf().text(0.8, 0.03, time.strftime("Supressed data from last %i days"%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
-        plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+            plt.gcf().text(0.75, 0.03, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
+        plt.gcf().text(0.75, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         if extra_labels != None:
             for label in extra_labels:
@@ -2084,9 +2408,11 @@ class CoronaBaseData:
             ax2.set_yticks(ax1.get_yticks())
             ax2.set_ylim(ax1.get_ylim())
         
-        plt.gcf().text(0.01, 0.01, "Data Source: %s"%(_get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
-        plt.gcf().text(0.01, 0.98, "github.com/tonioluna/corona_graphs", fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
-        plt.gcf().text(0.8, 0.01, time.strftime("Generated on %Y/%m/%d %H:%M"), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.01, "%s:\n%s"%(_data_source, _get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        plt.gcf().text(0.01, 0.98, _github_url, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+        if self.config_file.supress_last_n_days != None:
+            plt.gcf().text(0.75, 0.03, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
+        plt.gcf().text(0.75, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
         plt.savefig(fname = fname, dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
@@ -2344,39 +2670,166 @@ def get_args():
     
     return config_files
              
+
+def _iterate_covid19mx_reports(config_file, out_dir, report, cwd, covid19mx_reports):
+    filenames = []
+    # Calculate the range to go over
+    _country_label_order = []
+    first_ok_frame = None
+    for index, covid19mx_report in enumerate(covid19mx_reports):
+        # TODO: store these DBs on on a factory for the cases with multiple reports
+        corona_data = CoronaBaseData(config_file=config_file, covid19mx_force_report = covid19mx_report.tag)
+        try:
+            if out_dir != None:
+                os.chdir(out_dir)
+            
+            report.filename_postfix = ".frame_%03i"%(index,)
+            corona_data._country_label_order = _country_label_order
+            filename = corona_data.export(report, covid19mx_iter_report_date = covid19mx_report.date)
+    
+            if filename != None:
+                filenames.append(filename)
+                if first_ok_frame == None:
+                    first_ok_frame = index
+            else:
+                first_ok_frame = None
+             
+        finally:
+            if cwd != None:
+                os.chdir(cwd)
+                
+    if report.sequence_clone_last_frame != None:
+        log.info("Copying last frame %s %i times"%(filename, report.sequence_clone_last_frame))
+        for i in range(0, report.sequence_clone_last_frame):
+            new_file = filename.replace(report.filename_postfix, ".frame_%03i"%(len(covid19mx_reports) + i))
+            shutil.copy(src = filename, dst = new_file)
+
+    if report.sequence_do_postprocess:
+        cmd = report.sequence_postprocess_command
+        cmd = cmd.replace("#FILENAME_WILDCARD#", os.path.basename(filename.replace(report.filename_postfix, ".frame_%03d")))
+        cmd = cmd.replace("#REPORT_NAME#", report.ID)
+        cmd = cmd.replace("#FIRST_OK_FRAME#", str(first_ok_frame))
+        local_cwd = os.getcwd()
+        try:
+            d = os.path.dirname(filename)
+            log.info("Post-processing sequence at %s with command %s"%(d, cmd))
+            os.chdir(d)
+            ec = os.system(cmd)
+            if ec != 0:
+                log.error("Failed to prostprocess, exit code %i"%(ec,))
+            else:
+                log.info("Sequence postprocessing finished ok")
+        finally:
+            os.chdir(local_cwd)
+
+    
+    return filenames
+
+def _get_covid19mx_reports():
+    log.debug("Looking for the latest MX covid data file under %s"%(COVID19MX_DIR_MAIN_REPORT_DIR, ))
+    
+    reports = []
+    
+    months_items = os.listdir(COVID19MX_DIR_MAIN_REPORT_DIR)
+    months_items.sort()
+    for month_dir in months_items:
+        m = COVID19MX_REGEX_MAIN_REPORT_MONTH_DIR.match(month_dir)
+        if m == None: continue
+        fmonth_dir = os.path.join(COVID19MX_DIR_MAIN_REPORT_DIR, month_dir)
+    
+        day_items = os.listdir(fmonth_dir)
+        day_items.sort()
+        for day_file in day_items:
+            m = COVID19MX_REGEX_MAIN_REPORT_DAY_FILE.match(day_file)
+            if m == None: continue
+            reports.append(SortedDate(tag = os.path.join(fmonth_dir, day_file), 
+                                     year = m.groupdict()["year"], 
+                                     month = m.groupdict()["month"], 
+                                     day = m.groupdict()["day"]))
+    reports.sort()
+    return reports
+    
+def set_language(lang):
+    global _timeline_display_names
+    global _data_display_names
+    global _data_source
+    global _generated_on
+    global _supressed_data_from_last_n_days_fmtr
+    
+    assert lang in _known_languages, "Invalid language: %s. Known languages: %s"%(repr(lang), repr(_known_languages))
+
+    log.info("Setting language to %s"%(lang))
+
+    if lang == LANGUAGE_SP:
+        _timeline_display_names = _timeline_display_names_sp
+        _data_display_names = _data_display_names_sp
+        _data_source = _data_source_sp
+        _generated_on = _generated_on_sp
+        _supressed_data_from_last_n_days_fmtr = _supressed_data_from_last_n_days_fmtr_sp
+    elif lang == LANGUAGE_EN:
+        _timeline_display_names = _timeline_display_names_en
+        _data_display_names = _data_display_names_en
+        _data_source = _data_source_en
+        _generated_on = _generated_on_en
+        _supressed_data_from_last_n_days_fmtr = _supressed_data_from_last_n_days_fmtr_en 
+    else:
+        raise Exception("Internal error")
+
 def main():
     init_logger()
     
     try:
         config_files = get_args()
         config = Parameters(filenames = config_files)
-        corona_data = CoronaBaseData(config_file = config)
         
+        set_language(config.language)
+                
         if config.report_dir == "@AUTO":
-            dir = report = time.strftime("report_%y%m%d_%H%M%S")
+            out_dir = report = time.strftime("report_%y%m%d_%H%M%S")
         elif config.report_dir == "@CWD":
-            dir = None
+            out_dir = None
         else:
-            dir = config.report_dir
-        if dir != None:
-            dir = os.path.abspath(dir)
-            assert not os.path.exists(dir), "Report directory already exists: %s"%(dir)
-            os.mkdir(dir)
+            out_dir = config.report_dir
+        if out_dir != None:
+            out_dir = os.path.abspath(out_dir)
+            assert not os.path.exists(out_dir), "Report directory already exists: %s"%(out_dir)
+            os.mkdir(out_dir)
             # Wait for f-ing windows to create the directory
             x = 10
             while x > 0:
-                if os.path.exists(dir):
+                if os.path.exists(out_dir):
                     break
                 time.sleep(0.05)
-            assert os.path.exists(dir), "Windows at it again, directory was not created: %s"%(dir)
+            assert os.path.exists(out_dir), "Windows at it again, directory was not created: %s"%(out_dir)
                 
-            os.chdir(dir)
+            for config_file in config_files:
+                shutil.copy(config_file, os.path.join(out_dir, os.path.basename(config_file)))
         
-        for config_file in config_files:
-            shutil.copy(config_file, os.path.join(dir, os.path.basename(config_file)))
+        cwd = None
+        if out_dir != None:
+            cwd = os.getcwd()
+        
+        default_corona_data = None
+        first = False
+        covid19mx_reports = None
         
         for report in config.reports:
-            corona_data.export(report)
+            if report.sequence_do_export and report.sequence_type == SEQUENCE_COVID19MX_REPORT_ITERATION:
+                if covid19mx_reports == None:
+                    covid19mx_reports = _get_covid19mx_reports()
+                
+                _iterate_covid19mx_reports(config_file = config, out_dir = out_dir, report = report, cwd = cwd, covid19mx_reports = covid19mx_reports)
+                
+            else:
+                if default_corona_data == None:
+                    default_corona_data = CoronaBaseData(config_file = config)
+                
+                try:
+                    if out_dir != None: os.chdir(out_dir)
+                    default_corona_data.export(report)
+                finally:
+                    if cwd != None: os.chdir(cwd)
+                
         
     except Exception as ex:
         log.error("Caught high-level exception: %s"%(ex,))
