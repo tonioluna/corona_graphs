@@ -1,3 +1,4 @@
+
 import os
 import datetime
 import time
@@ -10,7 +11,7 @@ import re
 import codecs
 import shutil
 #import math
-#import random
+import random
 import csv
 import collections
 import numpy as np
@@ -93,6 +94,7 @@ DATA_NEW_DEATHS_PER_1K = "new_deaths_per_1k"
 DATA_NEW_DEATHS = "new_deaths"
 DATA_ACTIVE_CASES = "active_cases"
 DATA_ACTIVE_CASES_PER_1M = "active_cases_per_1m"
+DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES = "active_cases_per_1m_from_100_active_cases"
 DATA_NEW_DEATHS_PER_ACTIVE_CASES = "new_deaths_per_active_cases"
 DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_active_cases_from_1k_active_cases"
 DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases"
@@ -113,6 +115,7 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_NEW_DEATHS_PER_1K,
                DATA_ACTIVE_CASES,
                DATA_ACTIVE_CASES_PER_1M,
+               DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
@@ -128,6 +131,7 @@ _data_requires_csd_source = (DATA_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES,
                              DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,
                              DATA_ACTIVE_CASES_PER_1M,
+                             DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES,
                             )
 _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M, 
                                DATA_TOTAL_CASES_PER_10K, 
@@ -137,6 +141,7 @@ _data_type_needs_population = (DATA_TOTAL_CASES_PER_1M,
                                DATA_NEW_DEATHS_PER_1M,
                                DATA_NEW_DEATHS_PER_1K,
                                DATA_ACTIVE_CASES_PER_1M,
+                               DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES,
                                DATA_TOTAL_RECOVERED_PER_1M,
                                )
 
@@ -145,7 +150,9 @@ _data_source_sp = "Datos"
 _generated_on_en = "Generated on"
 _generated_on_sp = "Generado el"
 _supressed_data_from_last_n_days_fmtr_en = "Supressed data from last %i days"
-_supressed_data_from_last_n_days_fmtr_sp = "Datos de los últimos %i dias suprimidos"
+_supressed_data_from_last_n_days_fmtr_sp = "Datos de los últimos %i días suprimidos"
+_active_cases_fmtr_sp = "Casos activos: Aquellos casos positivos que comenzaron a mostrar síntomas en los últimos %i días"
+_active_cases_fmtr_en = "Active case: Those positive cases which started showing symptoms during the last %i days"
 _github_url = "github.com/tonioluna/corona_graphs"
 
 LANGUAGE_SP = "sp"
@@ -176,11 +183,12 @@ _data_display_names_en = {DATA_TOTAL_CASES:"Total cases",
                           DATA_NEW_DEATHS_PER_1M:"New deaths per day / 1M Habs",
                           DATA_NEW_DEATHS_PER_1K:"New deaths per day / 1K Habs",
                           DATA_NEW_DEATHS_PER_ACTIVE_CASES:"New deaths per day / Active Cases",
-                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(From 1K active cases)",
-                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(From 1K active cases)",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / Active Cases\n(With 1K active cases or more)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases\n(With 1K active cases or more)",
                           DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"New deaths per day / 1K Active Cases",
                           DATA_ACTIVE_CASES:"Active Cases",
                           DATA_ACTIVE_CASES_PER_1M:"Active Cases / 1M Habs",
+                          DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES:"Active Cases / 1M Habs\n(With 100 active cases or more)",
                           DATA_TOTAL_RECOVERED_PER_1M:"Recovered Cases / 1M Habs",
                           DATA_TOTAL_RECOVERED:"Recovered Cases",
                          }
@@ -198,11 +206,12 @@ _data_display_names_sp = {DATA_TOTAL_CASES:"Casos totales",
                           DATA_NEW_DEATHS_PER_1M:"Muertes nuevas por día / 1M Habs",
                           DATA_NEW_DEATHS_PER_1K:"Muertes nuevas por día / 1K Habs",
                           DATA_NEW_DEATHS_PER_ACTIVE_CASES:"Muertes nuevas por día / Casos activos",
-                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / Casos activos\n(Desde 1K casos activos)",
-                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / 1K Casos activos\n(Desde 1K casos activos)",
+                          DATA_NEW_DEATHS_PER_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / Casos activos\n(Con 1K casos de activos o más)",
+                          DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES:"Muertes nuevas por día / 1K Casos activos\n(Con 1K de casos activos o más)",
                           DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES:"Muertes nuevas por día / 1K Casos activos",
                           DATA_ACTIVE_CASES:"Casos activos",
                           DATA_ACTIVE_CASES_PER_1M:"Casos activos / 1M Habs",
+                          DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES:"Casos activos/ 1M Habs\n(Con 100 casos activos o más)",
                           DATA_TOTAL_RECOVERED_PER_1M:"Casos recuperados / 1M Habs",
                           DATA_TOTAL_RECOVERED:"Casos recuperados",
                          }
@@ -214,16 +223,23 @@ FILTER_TOP_MAX = "top_max"
 FILTER_TOP_MIN = "top_min"
 FILTER_TOP_MAX_MX = "top_max_mx"
 FILTER_COUNTRY_LIST = "country_list"
+FILTER_TOP_MAX_REGEX_MATCH = "top_max_regex_match"
+FILTER_TOP_MAX_REBOUND_MATCH = "top_max_rebound_regex_match"
 _known_filters = (FILTER_NONE,
                   FILTER_TOP_MAX,
                   FILTER_TOP_MIN,
                   FILTER_TOP_MAX_MX,
-                  FILTER_COUNTRY_LIST)
+                  FILTER_COUNTRY_LIST,
+                  FILTER_TOP_MAX_REGEX_MATCH,
+                  FILTER_TOP_MAX_REBOUND_MATCH)
 _filters_with_int_arg = (FILTER_TOP_MAX,
                          FILTER_TOP_MIN,
                          FILTER_TOP_MAX_MX)
 _filters_with_string_list = (FILTER_COUNTRY_LIST,                       
                        )
+_filters_with_regex_and_int = (FILTER_TOP_MAX_REBOUND_MATCH,
+                               FILTER_TOP_MAX_REGEX_MATCH
+                               )
 
 COUNTRY_MX_X8 = "Mexico x8"
 COUNTRY_MX = "Mexico"
@@ -246,7 +262,13 @@ _plot_styles_full_data_series = (PLOT_STYLE_LINE,
 _plot_styles_last_entry_data = (PLOT_STYLE_LAST_ENTRY_BARS,
                                 PLOT_STYLE_LAST_ENTRY_HBARS
                                )
- 
+
+PLOT_LINE_MARKERS_NONE = "none" 
+PLOT_LINE_MARKERS_LAST_ONE = "last_one" 
+PLOT_LINE_MARKERS_ALL = "all" 
+_known_plot_line_markers = (PLOT_LINE_MARKERS_ALL,
+                            PLOT_LINE_MARKERS_LAST_ONE,
+                            PLOT_LINE_MARKERS_NONE)
 
 PLOT_LINE_LEGEND_STYLE_STANDARD = "standard"
 PLOT_LINE_LEGEND_STYLE_EOL_MARKER = "end_of_line_marker"
@@ -315,6 +337,15 @@ CSD_CORONA_CSV_HDR_STATE = "Province/State"
 CSD_CORONA_CSV_HDR_COUNTRY = "Country/Region"
 CSD_CORONA_CSV_HDR_DATE_REGEX = re.compile("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$")
 
+
+COVID19MX_DATA_TYPE_BY_STATES        = REPORT_TYPE_MEXICO
+COVID19MX_DATA_TYPE_BY_MUNICIPES     = REPORT_TYPE_MEXICO_MPIOS
+
+_known_covid19mx_data_type = (COVID19MX_DATA_TYPE_BY_STATES,
+                              COVID19MX_DATA_TYPE_BY_MUNICIPES)     
+
+COVID19MX_ACTIVE_CASE_DURATION_DAYS_DEFAULT = 14
+
 COVID19MX_CATALOG_TYPE_SIMPLE = "simple"
 COVID19MX_CATALOG_TYPE_MUNICIPIOS = "municipios"
 COVID19MX_CATALOG_TYPE_ENTIDADES = "entidades"
@@ -323,7 +354,7 @@ COVID19MX_CATALOG_TYPE_HDR_COLS = { COVID19MX_CATALOG_TYPE_SIMPLE     : ("CLAVE"
                                     COVID19MX_CATALOG_TYPE_MUNICIPIOS : ("CLAVE_MUNICIPIO","MUNICIPIO","CLAVE_ENTIDAD"),
                                     COVID19MX_CATALOG_TYPE_ENTIDADES  : ("CLAVE_ENTIDAD","ENTIDAD_FEDERATIVA","ABREVIATURA")}
 
-COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases"))
 COVID19MX_DIR_CATALOGS    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "catalogos")
 COVID19MX_CATALOG_ENTIDADES     = "catalog_entidades"
 COVID19MX_CATALOG_MUNICIPIOS    = "catalog_municipios"
@@ -391,6 +422,8 @@ COVID19MX_REGEX_MAIN_REPORT_DAY_FILE_CSV  = re.compile("^(?P<year>\d{4})(?P<mont
 COVID19MX_DIR_MAIN_REPORT_DIR    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "todos")
 COVID19MX_MAIN_REPORT_DATE_REGEX = re.compile("^(?P<year>\d{4})\-(?P<month>\d{2})\-(?P<day>\d{2})$")                    
 COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO = "Positivo SARS-CoV-2"
+COVID19MX_DIR_MAIN_REPORT_RESULTADO_NEGATIVO = "No positivo SARS-CoV-2"
+COVID19MX_DIR_MAIN_REPORT_RESULTADO_PENDIENTE = "Resultado pendiente"
 
 # Won't use the state catalog to decode states, instead the data from the states sheet which is better
 COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",     "FECHA_ACTUALIZACION",   COVID19MX_COL_DATE),
@@ -612,13 +645,22 @@ class Report:
         assert self.filter in _known_filters, "Unsupported filter type: %s"%(self.filter)
         
         self.filter_value = None
-        if self.filter in _filters_with_int_arg or self.filter in _filters_with_string_list:
+        if self.filter in _filters_with_int_arg or \
+            self.filter in _filters_with_string_list or \
+            self.filter in _filters_with_regex_and_int:
+            
             arg = params._get_option(section, "filter_value").strip()
             if self.filter in _filters_with_int_arg:
                 arg = int(arg)
             elif self.filter in _filters_with_string_list:
                 arg = arg.replace("\\,", "__ESCAPED_COMMA__")
                 arg = [s.strip().replace("__ESCAPED_COMMA__", ",") for s in arg.split(",")]
+            elif self.filter in _filters_with_regex_and_int:
+                s = [s.strip() for s in arg.split(" ")]
+                regex = " ".join(s[:-1]).strip()
+                val = int(s[-1].strip())
+                regex = re.compile(regex) 
+                arg = regex, val
             self.filter_value = arg
         
         if params._has_option(section, "plot_x_range"):
@@ -638,6 +680,8 @@ class Report:
             self.plot_y_range = [(float(i) if i != "" else None) for i in rng]
         else:
             self.plot_y_range = None
+        
+        self.data_plot_zeros = False if not params._has_option(section, "data_plot_zeros") else strToBool(params._get_option(section, "data_plot_zeros").strip())
         
         self.plot_title = None if not params._has_option(section, "plot_title") else params._get_option(section, "plot_title")
         self.plot_subtitle = None if not params._has_option(section, "plot_subtitle") else params._get_option(section, "plot_subtitle").replace("\\n","\n")
@@ -661,7 +705,10 @@ class Report:
         self.axis2_plot_line_width = 0.75 if not params._has_option(section, "axis2_plot_line_width") else float(params._get_option(section, "axis2_plot_line_width"))
         self.plot_line_legend_style = PLOT_LINE_LEGEND_STYLE_STANDARD if not params._has_option(section, "plot_line_legend_style") else params._get_option(section, "plot_line_legend_style")
         assert self.plot_line_legend_style in _known_plot_line_legend_styles, "Invalid style for plot_line_legend_style: %s"%(self.plot_line_legend_style)
-         
+        self.plot_line_markers = PLOT_LINE_MARKERS_NONE if not params._has_option(section, "plot_line_markers") else params._get_option(section, "plot_line_markers")
+        assert self.plot_line_markers in _known_plot_line_markers, "Invalid style for plot_line_markers: %s"%(self.plot_line_markers)
+        self.legend_line_length = None if not params._has_option(section, "legend_line_length") else int(params._get_option(section, "legend_line_length"))
+                
                 
         self.plot_y_scale = PLOT_SCALE_LINEAR
         if params._has_option(section, "plot_y_scale"):
@@ -739,6 +786,7 @@ class Parameters:
         self.csd_state_xlation = None
         self.supress_last_n_days = None
         self.language = None
+        self.covid19mx_active_case_duration_days = COVID19MX_ACTIVE_CASE_DURATION_DAYS_DEFAULT
         
         while True:
             if index >= len(self._filenames): 
@@ -762,6 +810,9 @@ class Parameters:
         
         if self._has_option("general", "supress_last_n_days"):
             self.supress_last_n_days = int(self._get_option("general", "supress_last_n_days").strip())
+        
+        if self._has_option("general", "covid19mx_active_case_duration_days"):
+            self.covid19mx_active_case_duration_days = int(self._get_option("general", "covid19mx_active_case_duration_days").strip())
         
         # First read the general section so the includes are processed first
         if self._has_option("general", "report_dir"):
@@ -915,7 +966,7 @@ class CoronaBaseData:
             population_data = self._read_covid19mx_state_data()
             self._read_covid19mx_municipes_data()
             if self.config_file.data_source == DATA_SOURCE_COVID19MX:
-                self._read_covid19mx(covid19mx_force_report)
+                self._read_covid19mx_data(data_type = COVID19MX_DATA_TYPE_BY_STATES, covid19mx_force_report = covid19mx_force_report)
             else:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
             
@@ -923,7 +974,7 @@ class CoronaBaseData:
             self._read_covid19mx_state_data()
             population_data = self._read_covid19mx_municipes_data()
             if self.config_file.data_source == DATA_SOURCE_COVID19MX:
-                self._read_covid19mx_municipes(covid19mx_force_report)
+                self._read_covid19mx_data(data_type = COVID19MX_DATA_TYPE_BY_MUNICIPES, covid19mx_force_report = covid19mx_force_report)
             else:
                 raise Exception("Uknown source: %s"%(self.config_file.data_source))
             
@@ -1116,122 +1167,11 @@ class CoronaBaseData:
                     
         return data    
     
-    def _read_covid19mx(self, covid19mx_force_report = None):
-        catalogs = self._read_covid19mx_catalogs()
+    def _read_covid19mx_data(self, data_type, covid19mx_force_report = None):
+        assert data_type in _known_covid19mx_data_type
+        doing_municipes = data_type == COVID19MX_DATA_TYPE_BY_MUNICIPES
+        doing_states    = data_type == COVID19MX_DATA_TYPE_BY_STATES
         
-        entries = self._read_covid19mx_entries(catalogs, covid19mx_force_report)
-        
-        # T1's five parameters we could measure: Deaths, Positive, recovered, negative, total tested, pending
-        # The reference dates for every data type:
-        # Deaths: FECHA_DEF
-        # Positive: FECHA_SINTOMAS
-        # Recovered: Not supported just yet
-        # Negative: FECHA_SINTOMAS
-        # Tested: FECHA_SINTOMAS
-        # Pending: FECHA_SINTOMAS
-        
-        # {state/country] = {date = count}}
-        dicts = []
-        deaths = {}
-        positive = {}
-        #recovered = {}
-        negative = {}
-        tested = {}
-        pending = {}
-        
-        log.debug("Initializing data dictionaries")
-        # get all the posible dates
-        all_dates = []
-        for e in entries:
-            if e.FECHA_DEF != None and e.FECHA_DEF not in all_dates:
-                all_dates.append(e.FECHA_DEF)
-            if e.FECHA_SINTOMAS != None and e.FECHA_SINTOMAS not in all_dates:
-                all_dates.append(e.FECHA_SINTOMAS)
-        
-        all_dates.sort()
-        
-        self.dates = []
-        if self.config_file.supress_last_n_days != None:
-            log.warning("Suppressing data from the last %i days"%(self.config_file.supress_last_n_days,))
-            self.dates.extend(all_dates[:-self.config_file.supress_last_n_days])
-        else:
-            self.dates.extend(all_dates)
-        
-        log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([time.strftime("%Y/%m/%d", time.localtime(d)) for d in all_dates])))
-         
-        #all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
-        all_countries = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
-        all_countries.sort()
-        all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
-        
-        log.debug("Countries/states to process: (%i) %s"%(len(all_countries), repr(all_countries)))
-            
-        # Initialize all dictionaries
-        dicts = [deaths, positive, negative, tested, pending]
-        for d in dicts:
-            #d["Mexico"] = {}
-            #for state in catalogs[COVID19MX_CATALOG_ENTIDADES]:
-            #    d[state[0]] = {}
-            for country in all_countries:
-                d[country] = {}
-                for date in all_dates:
-                    d[country][date] = 0
-        
-        log.info("Sorting data")
-        
-        for entry in entries:
-            state = entry.ENTIDAD_RES
-            # Deaths
-            if entry.FECHA_DEF != None:
-                deaths[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_DEF] += 1
-                deaths[state][entry.FECHA_DEF] += 1
-            # Cases
-            if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO:
-                positive[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
-                positive[state][entry.FECHA_SINTOMAS] += 1
-        
-        
-        log.info("Building data statistics")
-        
-        #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
-        last_total_deaths = {}
-        last_total_positive = {}
-        
-        dicts = [last_total_deaths, last_total_positive]
-        for d in dicts:
-            for c in all_countries:
-                d[c] = 0
-        
-        self.data = {}
-        
-        for country in all_countries:
-            self.data[country] = {}
-        
-            for date in all_dates:
-                # Total Deaths
-                prev_val = last_total_deaths[country]
-                if date in deaths[country]:
-                    day_val = deaths[country][date]
-                else:
-                    day_val = 0
-                entry_total_deaths = prev_val + day_val
-                entry_new_deaths = day_val
-                last_total_deaths[country] = entry_total_deaths
-                
-                # Positive Cases
-                prev_val = last_total_positive[country]
-                if date in positive[country]:
-                    day_val = positive[country][date]
-                else:
-                    day_val = 0
-                entry_total_cases = prev_val + day_val
-                entry_new_cases = day_val
-                last_total_positive[country] = entry_total_cases
-                
-                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases)
-                self.data[country][date] = e
-                
-    def _read_covid19mx_municipes(self, covid19mx_force_report = None):
         catalogs = self._read_covid19mx_catalogs()
         
         entries = self._read_covid19mx_entries(catalogs, covid19mx_force_report)
@@ -1253,6 +1193,8 @@ class CoronaBaseData:
         negative = {}
         tested = {}
         pending = {}
+        active = {}
+        
         
         log.debug("Initializing data dictionaries")
         # get all the posible dates
@@ -1263,6 +1205,21 @@ class CoronaBaseData:
             if e.FECHA_SINTOMAS != None and e.FECHA_SINTOMAS not in all_dates:
                 all_dates.append(e.FECHA_SINTOMAS)
         
+        # Make sure all dates exist
+        # Convert the dates to integer to simplity this
+        all_dates = [int(d) for d in all_dates]
+        
+        min_date = min(all_dates)
+        max_date = max(all_dates)
+        d = min_date
+        while d < max_date:
+            if d not in all_dates:
+                log.warning("Inserting missing date: %s"%(_format_date(d),))
+                all_dates.append(d)
+            d = _add_date_full_days(d, 1)
+            
+        # Back to float
+        all_dates = [float(d) for d in all_dates]
         all_dates.sort()
         
         self.dates = []
@@ -1272,22 +1229,29 @@ class CoronaBaseData:
         else:
             self.dates.extend(all_dates)
         
-        log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([time.strftime("%Y/%m/%d", time.localtime(d)) for d in all_dates])))
-         
-        #all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
-        all_countries = [d[COVID19MX_MUNICIPES_DATA_COL_FULL_NAME] for d in self.covid19mx_municipes_data.values()]
-        all_countries.sort()
-        # Insert also all states
-        all_states = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
-        all_states.sort()
-        all_countries.extend(all_states)
-        # And the whole country
-        all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
+        log.debug("Dates to process: (%i) %s"%(len(all_dates), repr([_format_date(d) for d in all_dates])))
+        
+        if doing_municipes:
+            #all_countries = [state[0] for state in catalogs[COVID19MX_CATALOG_ENTIDADES].values()]
+            all_countries = [d[COVID19MX_MUNICIPES_DATA_COL_FULL_NAME] for d in self.covid19mx_municipes_data.values()]
+            all_countries.sort()
+            # Insert also all states
+            all_states = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
+            all_states.sort()
+            all_countries.extend(all_states)
+            # And the whole country
+            all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
+        elif doing_states:
+            all_countries = [d[COVID19MX_STATE_DATA_COL_NAME] for d in self.covid19mx_state_data.values()]
+            all_countries.sort()
+            all_countries.insert(0, COVID19MX_ALL_COUNTRY_TAG) 
+        else:
+            raise Exception("Internal error")
         
         log.debug("Countries/states/Municipes to process: (%i) %s"%(len(all_countries), repr(all_countries)))
             
         # Initialize all dictionaries
-        dicts = [deaths, positive, negative, tested, pending]
+        dicts = [deaths, positive, negative, tested, pending, active]
         for d in dicts:
             #d["Mexico"] = {}
             #for state in catalogs[COVID19MX_CATALOG_ENTIDADES]:
@@ -1302,37 +1266,78 @@ class CoronaBaseData:
         for entry in entries:
             state = entry.ENTIDAD_RES
             municipe = entry.MUNICIPIO_RES
-            if municipe == None: 
-                continue
-            mpio_code ="%s_%s"%(municipe, state) 
+            if doing_municipes:
+                if municipe == None: 
+                    continue
+                mpio_code ="%s_%s"%(municipe, state) 
             # Deaths
             if entry.FECHA_DEF != None:
                 deaths[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_DEF] += 1
                 deaths[state][entry.FECHA_DEF] += 1
-                deaths[municipe][entry.FECHA_DEF] += 1
+                if doing_municipes:
+                    deaths[municipe][entry.FECHA_DEF] += 1
             # Cases
             if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_POSITIVO:
                 positive[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
                 positive[state][entry.FECHA_SINTOMAS] += 1
-                positive[municipe][entry.FECHA_SINTOMAS] += 1
+                if doing_municipes:
+                    positive[municipe][entry.FECHA_SINTOMAS] += 1
+            # Negative
+            if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_NEGATIVO:
+                negative[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
+                negative[state][entry.FECHA_SINTOMAS] += 1
+                if doing_municipes:
+                    negative[municipe][entry.FECHA_SINTOMAS] += 1
+            # Pending
+            if entry.RESULTADO == COVID19MX_DIR_MAIN_REPORT_RESULTADO_PENDIENTE:
+                pending[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
+                pending[state][entry.FECHA_SINTOMAS] += 1
+                if doing_municipes:
+                    pending[municipe][entry.FECHA_SINTOMAS] += 1
+            # Tested
+            tested[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
+            tested[state][entry.FECHA_SINTOMAS] += 1
+            if doing_municipes:
+                tested[municipe][entry.FECHA_SINTOMAS] += 1
+            # Active
         
         log.info("Building data statistics")
         
-        #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases"))
+        
         last_total_deaths = {}
         last_total_positive = {}
+        last_active_positive = {}
+        last_recovered = {}
         
-        dicts = [last_total_deaths, last_total_positive]
-        for d in dicts:
+        for d in [last_total_deaths, last_total_positive, last_active_positive, last_recovered]:
             for c in all_countries:
                 d[c] = 0
         
         self.data = {}
         
-        for country in all_countries:
+        
+        update_period = random.randint(40,60)
+        
+        for cindex, country in enumerate(all_countries):
+            if cindex % update_period == 0:
+                sys.stdout.write(" " + country + "\r")
+                sys.stdout.flush()
+            
             self.data[country] = {}
+            
+            active_expiration_dates = {}
+            for d in all_dates:
+                active_expiration_dates[d] = 0
+            
+            #dbg = False if country not in ("Panindícuaro, Mich.", "Puruándiro, Mich.") else True
+            
+            #if country.startswith("Jim"):
+            #    print("%s, %s"%(country, country == "Jiménez, Mich."))
+            
+            #if dbg: log.debug("Statistics debug for: %s"%(country, ))
         
             for date in all_dates:
+                #if dbg: log.debug("Date: %s"%(_format_date(date), ))
                 # Total Deaths
                 prev_val = last_total_deaths[country]
                 if date in deaths[country]:
@@ -1352,8 +1357,62 @@ class CoronaBaseData:
                 entry_total_cases = prev_val + day_val
                 entry_new_cases = day_val
                 last_total_positive[country] = entry_total_cases
+                #if dbg: 
+                #    log.debug("Positive cases")
+                #    log.debug("              prev_val: %s"%(repr(prev_val), ))
+                #    log.debug("              day_val: %s"%(repr(day_val), ))
+                #    log.debug("    entry_total_cases: %s"%(repr(entry_total_cases), ))
+                #    log.debug("      entry_new_cases: %s"%(repr(entry_new_cases), ))
+                    
                 
-                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases)
+                # Active cases
+                prev_val = last_active_positive[country]
+                #if dbg: 
+                #    log.debug("Active cases")
+                #    import pprint
+                #    log.debug("Pending exp dates:")
+                #    for dt, dy in active_expiration_dates.items():
+                #        if dt >= date and dy > 0:
+                #            log.debug(" %s -> %i days"%(_format_date(dt), dy))
+                #    log.debug("              prev_val: %s"%(repr(prev_val), ))
+                if date in positive[country]:
+                    day_val = positive[country][date]
+                    exp_date = _add_date_full_days(date, self.config_file.covid19mx_active_case_duration_days)
+                    # if the date falls beyond the dates already-inserted then there's no need to register the expiration as that is after the report ends
+                    if exp_date in active_expiration_dates:
+                        active_expiration_dates[exp_date] += day_val 
+                    #if dbg: 
+                    #    log.debug("                       Setting %i days to expire on %s"%(day_val, _format_date(exp_date), ))
+                else:
+                    day_val = 0
+                #if dbg: 
+                #    log.debug("              day_val: %s"%(repr(day_val), ))
+                #if dbg: 
+                #    log.debug("                       %i days expired today"%(active_expiration_dates[date], ))
+                entry_active_cases = prev_val + day_val - active_expiration_dates[date]
+                entry_new_active = day_val
+                last_active_positive[country] = entry_active_cases
+                #if dbg: 
+                #    log.debug("   entry_active_cases: %s"%(repr(entry_active_cases), ))
+                #    log.debug("     entry_new_active: %s"%(repr(entry_new_active), ))
+                
+                # Recovered cases
+                #prev_val = last_recovered[country]
+                #if date in positive[country]:
+                #    day_val = positive[country][date]
+                #else:
+                #    day_val = 0
+                #entry_total_recovered = prev_val + day_val
+                #entry_new_recovered = day_val
+                #last_recovered[country] = entry_total_cases
+                
+                
+                #CONTINUEHERE, active cases. Need to set an expiration date for active cases, or better said, create a dictionary of negative cases to add 
+                # into the mix int he future. Maybe make sure the date range includes all days in order to make stuff easier.
+                
+                #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases"))
+        
+                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases, entry_active_cases)
                 self.data[country][date] = e
                 
     
@@ -1394,7 +1453,7 @@ class CoronaBaseData:
                 for row in reader:
                     rnum += 1
                     
-                    if rnum % 10000 == 0:
+                    if rnum % 1000 == 0:
                         sys.stdout.write(" At row %iK\r"%(rnum/1000, ))
                         sys.stdout.flush()
                     
@@ -1857,8 +1916,8 @@ class CoronaBaseData:
             if report.axis2_data_type != None:
                 axis2_enabled = True
             
-            if report.data_type in _data_requires_csd_source or (axis2_enabled and report.axis2_data_type in _data_requires_csd_source):
-                assert self.config_file.data_source == DATA_SOURCE_CSSEGISSANDATA, "This report requires data available only on source %s"%(_get_data_source_name(self.config_file.data_source)) 
+            #if report.data_type in _data_requires_csd_source or (axis2_enabled and report.axis2_data_type in _data_requires_csd_source):
+            #    assert self.config_file.data_source == DATA_SOURCE_CSSEGISSANDATA, "This report requires data available only on source %s"%(_get_data_source_name(self.config_file.data_source)) 
             
             # if country population is required, then limit the countries to export
             if report.data_type in _data_type_needs_population or \
@@ -1912,9 +1971,22 @@ class CoronaBaseData:
                                     elif dt == DATA_TOTAL_DEATHS_PER_1K_TOTAL_CASES:
                                         data = self.data[country][actual_date].total_deaths / (self.data[country][actual_date].total_cases / 1000)
                                     elif dt == DATA_ACTIVE_CASES:
-                                        data = self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered 
+                                        if self.config_file.data_source == DATA_SOURCE_COVID19MX:
+                                            data = self.data[country][actual_date].active_cases
+                                        else:
+                                            data = self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered 
                                     elif dt == DATA_ACTIVE_CASES_PER_1M:
-                                        data = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / (self.population[country] / 1000000)
+                                        if self.config_file.data_source == DATA_SOURCE_COVID19MX:
+                                            data = self.data[country][actual_date].active_cases / (self.population[country] / 1000000)
+                                        else:
+                                            data = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered) / (self.population[country] / 1000000)
+                                    elif dt == DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES:
+                                        if self.config_file.data_source == DATA_SOURCE_COVID19MX:
+                                            active_cases = self.data[country][actual_date].active_cases
+                                        else:
+                                            active_cases = (self.data[country][actual_date].total_cases - self.data[country][actual_date].total_recovered)
+                                        if active_cases >= 100:
+                                            data = ac / (self.population[country] / 1000000)
                                     elif dt == DATA_TOTAL_RECOVERED:
                                         data = self.data[country][actual_date].total_recovered 
                                     elif dt == DATA_TOTAL_RECOVERED_PER_1M:
@@ -2121,7 +2193,7 @@ class CoronaBaseData:
             for date_index, adj_date in enumerate(date_domain):
                 data = report_data[date_index][country]
                 if data == None or \
-                    (data == 0): continue
+                    (data == 0 and not report.data_plot_zeros): continue
                 
                 if timeline in _date_timelines:
                     #x.append(datetime.datetime.strptime(adj_date,"%m/%d/%Y").date())
@@ -2145,7 +2217,7 @@ class CoronaBaseData:
                 for date_index, adj_date in enumerate(date_domain):
                     data = axis2_report_data[date_index][country]
                     if data == None or \
-                        (data == 0): continue
+                        (data == 0 and not report.data_plot_zeros): continue
                     
                     if timeline in _date_timelines:
                         #x.append(datetime.datetime.strptime(adj_date,"%m/%d/%Y").date())
@@ -2155,10 +2227,20 @@ class CoronaBaseData:
                     y2.append(data)
             
             if report.plot_style == PLOT_STYLE_LINE:
+                args = {}
+                if report.plot_line_markers == PLOT_LINE_MARKERS_LAST_ONE:
+                    args["markevery"] = [len(x) - 1]
+                    args["marker"] = _plot_line_markers[nsc_index % len(_plot_line_markers)]
+                    args["markersize"] = (4.5 if (country not in _vip_countries) else 5.5)
+                elif report.plot_line_markers == PLOT_LINE_MARKERS_ALL:
+                    args["marker"] = _plot_line_markers[nsc_index % len(_plot_line_markers)]
+                    args["markersize"] = (3 if (country not in _vip_countries) else 4.2)
+                
                 line, = ax1.plot(x, 
                                  y, 
                                  label = country if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_STANDARD else None, 
-                                 linewidth = report.plot_line_width if (country not in _vip_countries) else report.plot_line_width * 1.5)
+                                 linewidth = report.plot_line_width if (country not in _vip_countries) else report.plot_line_width * 1.5,
+                                 **args)
                                  
                 if report.plot_line_legend_style == PLOT_LINE_LEGEND_STYLE_EOL_MARKER:
                     ax1.scatter(x[-1], y[-1], marker=_plot_line_markers[nsc_index % len(_plot_line_markers)], color=line.get_color(), zorder=7, s = (20 if (country not in _vip_countries) else 40), label=country)
@@ -2262,7 +2344,11 @@ class CoronaBaseData:
         fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
         #plt.tight_layout()
         
-        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2, loc = report.legend_location)
+        args = {}
+        if report.legend_line_length != None:
+            args["handlelength"] = report.legend_line_length
+        
+        ax1.legend(fontsize=PLOT_AXIS_FONT_SIZE - 2, loc = report.legend_location, **args)
         
         ax1.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         if axis2_report_data != None:
@@ -2275,8 +2361,10 @@ class CoronaBaseData:
         plt.gcf().text(0.01, 0.01, "%s:\n%s"%(_data_source, _get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, _github_url, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         if self.config_file.supress_last_n_days != None:
-            plt.gcf().text(0.75, 0.03, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
-        plt.gcf().text(0.75, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+            plt.gcf().text(0.98, 0.12, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING, rotation = 90)
+        if report.data_type in (DATA_ACTIVE_CASES, DATA_ACTIVE_CASES_PER_1M):
+            plt.gcf().text(0.965, 0.12, _active_cases_fmtr%self.config_file.covid19mx_active_case_duration_days, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING, rotation = 90)
+        plt.gcf().text(0.80, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         if extra_labels != None:
             for label in extra_labels:
@@ -2315,7 +2403,7 @@ class CoronaBaseData:
             for date_index, adj_date in enumerate(date_domain):
                 data = report_data[date_index][country]
                 if data == None or \
-                    (data == 0): continue
+                    (data == 0 and not report.data_plot_zeros): continue
                 
                 last_y = data
             
@@ -2411,8 +2499,10 @@ class CoronaBaseData:
         plt.gcf().text(0.01, 0.01, "%s:\n%s"%(_data_source, _get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, _github_url, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         if self.config_file.supress_last_n_days != None:
-            plt.gcf().text(0.75, 0.03, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING)
-        plt.gcf().text(0.75, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
+            plt.gcf().text(0.98, 0.12, time.strftime(_supressed_data_from_last_n_days_fmtr%self.config_file.supress_last_n_days), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING, rotation = 90)
+        if report.data_type in (DATA_ACTIVE_CASES, DATA_ACTIVE_CASES_PER_1M):
+            plt.gcf().text(0.965, 0.12, _active_cases_fmtr%self.config_file.covid19mx_active_case_duration_days, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR_WARNING, rotation = 90)
+        plt.gcf().text(0.80, 0.01, time.strftime("%s %%Y/%%m/%%d %%H:%%M"%(_generated_on,)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         
         log.info("Writting plot to file")
         plt.savefig(fname = fname, dpi=600, facecolor=fig.get_facecolor(), edgecolor='none')
@@ -2473,11 +2563,23 @@ class CoronaBaseData:
                     selected_countries.append(country)
                 else:
                     log.warning("Country not found on report data, cannot add into filter: %s"%(country,))
-        elif filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX, FILTER_TOP_MIN):
-            assert type(filter_value) == int, "Filter value must be an integer"
+        elif filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX, FILTER_TOP_MIN, FILTER_TOP_MAX_REGEX_MATCH):
+            if filter == FILTER_TOP_MAX_REGEX_MATCH:
+                regex = filter_value[0]
+                filter_int_value = filter_value[1]
+                available_countries = []
+                for country in report_countries:
+                    if regex.match(country) != None:
+                        available_countries.append(country)
+                filter = FILTER_TOP_MAX
+            else:
+                available_countries = report_countries
+                filter_int_value = filter_value
+            
+            assert type(filter_int_value) == int, "Filter value must be an integer"
             max_country_values = {}
             # get the maximum value per country across all dates
-            for country in report_countries:
+            for country in available_countries:
                 country_max = None
                 for row in report_data:
                     val = row[country]
@@ -2499,16 +2601,59 @@ class CoronaBaseData:
                 countries.sort()
                 tmp_country_list.extend(countries)
             # Limit the number of countries as requested
-            if filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX):
-                if len(tmp_country_list) > filter_value:
-                    tmp_country_list = tmp_country_list[:filter_value]
+            if filter in (FILTER_TOP_MAX, FILTER_TOP_MAX_MX, FILTER_TOP_MAX_REGEX_MATCH):
+                if len(tmp_country_list) > filter_int_value:
+                    tmp_country_list = tmp_country_list[:filter_int_value]
             elif filter == FILTER_TOP_MIN:
-                if len(tmp_country_list) > filter_value:
-                    tmp_country_list = tmp_country_list[filter_value:]
+                if len(tmp_country_list) > filter_int_value:
+                    tmp_country_list = tmp_country_list[filter_int_value:]
             else:
                 raise Exception("Internal error")
             if filter == FILTER_TOP_MAX_MX and COUNTRY_MX in report_countries:
                 tmp_country_list.append(COUNTRY_MX)
+            # Now, keep the original order of countries
+            for country in report_countries:
+                if country in tmp_country_list:
+                    selected_countries.append(country)
+        elif filter in (FILTER_TOP_MAX_REBOUND_MATCH):
+            regex = filter_value[0]
+            filter_int_value = filter_value[1]
+            available_countries = []
+            for country in report_countries:
+                if regex.match(country) != None:
+                    available_countries.append(country)
+            
+            assert type(filter_int_value) == int, "Filter value must be an integer"
+        
+            max_country_valley_score = {}
+            # get the maximum valley size per country country across all dates
+            for country in available_countries:
+                country_max = None
+                
+                data = [row[country] for row in report_data]
+                valleys = get_valleys(data)
+                max_valley_score = 0 if len(valleys) == 0 else max([valley.size_score for valley in valleys])
+                
+                if max_valley_score not in max_country_valley_score:
+                    max_country_valley_score[max_valley_score] = []
+                log.debug("%s, max_valley_score=%i"%(country, max_valley_score))
+                max_country_valley_score[max_valley_score].append(country)
+            # sort the max values
+            values = list(max_country_valley_score.keys())
+            values.sort(reverse = True)
+            tmp_country_list = []
+            # and add the countries into a list using the max repetition value fount
+            for v in values:
+                # Also sort the countries per value in case there's more than one per value
+                countries = max_country_valley_score[v]
+                countries.sort()
+                tmp_country_list.extend(countries)
+            # Limit the number of countries as requested
+            if filter in (FILTER_TOP_MAX_REBOUND_MATCH, ):
+                if len(tmp_country_list) > filter_int_value:
+                    tmp_country_list = tmp_country_list[:filter_int_value]
+            else:
+                raise Exception("Internal error")
             # Now, keep the original order of countries
             for country in report_countries:
                 if country in tmp_country_list:
@@ -2647,6 +2792,127 @@ class CoronaBaseData:
         domain.sort()
         
         return domain, country_timelines
+    
+def _add_date_full_days(d, days):
+    # Add 25 hours for 1 day (to account for daylight time changes)
+    d += (24*days + 1)*60*60
+    # Then adjust back to the beginning of the day
+    d = time.mktime(time.strptime(time.strftime("%Y-%m-%d", time.localtime(d)), "%Y-%m-%d"))
+    
+    return d
+
+Valley = collections.namedtuple("Valley", ("start_index", "end_index", "height", "width", "size_score"))
+
+def get_valleys(data, is_reversed = False):
+    assert len(data) >= 3
+    
+    base_index = 0
+    
+    valleys = []
+    
+    while True:
+        # log.debug("Locating beggining of valley from index %i"%(base_index,))
+        # Locate the beggining of the next valley
+        prev_val = None
+        start_of_drop_index = None
+        start_of_drop_value = None
+        while True:
+            v = data[base_index]
+            if prev_val != None and prev_val > v:
+                start_of_drop_index = base_index - 1
+                start_of_drop_value = prev_val
+                # log.debug("Located beggining of valley at index %i with value %s"%(start_of_drop_index, start_of_drop_value))
+                break
+            
+            prev_val = v
+            base_index += 1
+            # No data drop has been found
+            if base_index >= len(data):
+                break
+        
+        # Could not find the beginning of the next valley
+        if start_of_drop_index == None:
+            # log.debug("Out of data, did not find a valley start. Stopping.")
+            break
+        
+        # Scan the valley
+        # Need to find the next data point which is equal or higher than the beggining of the valley
+        # No need to check for overflow, can't be the last value on the list
+        fwd_index = start_of_drop_index + 1
+        min_valley_val = start_of_drop_value
+        while True:
+            v = data[fwd_index]
+            if v >= start_of_drop_value:
+                # log.debug("End of valley located at index %i"%(fwd_index,))
+            
+                #Valley = collections.namedtuple("Valley", ("start_index", "end_index", "height", "width", "size_score"))
+                start_index = start_of_drop_index
+                end_index = fwd_index
+                height = start_of_drop_value - min_valley_val
+                width = end_index - start_index
+                # TODO: Make an area calculation method for this
+                size_score = height * width
+                
+                valley = Valley(start_index, end_index, height, width, size_score)
+                valleys.append(valley)
+                
+                # log.debug("Found valley: %s"%(repr(valley)))
+                break
+            
+            min_valley_val = min(v, min_valley_val)
+            
+            fwd_index += 1
+            # No data drop has been found
+            if fwd_index >= len(data):
+                # log.debug("Out of data, did not find end of valley")
+                break
+        
+        # Now, continue from the start data point and find the next raise of values
+        # log.debug("Locating the next data raise from index %i"%(base_index,))
+        # Locate the beggining of the next valley
+        prev_val = None
+        while True:
+            v = data[base_index]
+            if prev_val != None and prev_val < v:
+                # log.debug("Located data raise at index %i with value %s"%(base_index, v))
+                break
+            
+            prev_val = v
+            base_index += 1
+            # No data drop has been found
+            if base_index >= len(data):
+                base_index = None
+                break
+        
+        # Could not find the beginning of the next valley
+        if base_index == None:
+            # log.debug("Out of data, did not find a data raise. Stopping.")
+            break
+        
+    if not is_reversed:
+        rev_data = []
+        rev_data.extend(data)
+        rev_data.reverse()
+        valleys.extend(get_valleys(rev_data, is_reversed = True))
+        
+        # Remove duplicated valleys
+        new_valleys = []
+        for v in valleys:
+            if v not in new_valleys:
+                new_valleys.append(v)
+        valleys = new_valleys
+        
+    else:
+        # Reverse the located valleys
+        new_valleys = []
+        #("start_index", "end_index", "height", "width", "size_score"))
+        last_index = len(data) - 1
+        for valley in valleys:
+            new_valley = Valley(last_index - valley.end_index, last_index - valley.start_index, valley.height, valley.width, valley.size_score)
+            new_valleys.append(new_valley)
+        valleys = new_valleys
+    
+    return valleys    
              
 def _format_date(d):
     return time.strftime("%Y/%m/%d", time.localtime(d))
@@ -2755,6 +3021,7 @@ def set_language(lang):
     global _data_source
     global _generated_on
     global _supressed_data_from_last_n_days_fmtr
+    global _active_cases_fmtr
     
     assert lang in _known_languages, "Invalid language: %s. Known languages: %s"%(repr(lang), repr(_known_languages))
 
@@ -2766,12 +3033,14 @@ def set_language(lang):
         _data_source = _data_source_sp
         _generated_on = _generated_on_sp
         _supressed_data_from_last_n_days_fmtr = _supressed_data_from_last_n_days_fmtr_sp
+        _active_cases_fmtr = _active_cases_fmtr_sp
     elif lang == LANGUAGE_EN:
         _timeline_display_names = _timeline_display_names_en
         _data_display_names = _data_display_names_en
         _data_source = _data_source_en
         _generated_on = _generated_on_en
-        _supressed_data_from_last_n_days_fmtr = _supressed_data_from_last_n_days_fmtr_en 
+        _supressed_data_from_last_n_days_fmtr = _supressed_data_from_last_n_days_fmtr_en
+        _active_cases_fmtr = _active_cases_fmtr_en 
     else:
         raise Exception("Internal error")
 
