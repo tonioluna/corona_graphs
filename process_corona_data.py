@@ -101,6 +101,7 @@ DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases"
 DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES_FROM_1K_ACTIVE_CASES = "new_deaths_per_1k_active_cases_from_1k_active_cases"
 DATA_TOTAL_RECOVERED_PER_1M = "total_recovered_per_1m"
 DATA_TOTAL_RECOVERED = "total_recovered"
+DATA_PENDING_CASES = "pending_cases"
 _known_data = (DATA_TOTAL_CASES,
                DATA_TOTAL_CASES_PER_10K,
                DATA_TOTAL_CASES_PER_10M,
@@ -122,6 +123,7 @@ _known_data = (DATA_TOTAL_CASES,
                DATA_NEW_DEATHS_PER_1K_ACTIVE_CASES,
                DATA_TOTAL_RECOVERED_PER_1M,
                DATA_TOTAL_RECOVERED,
+               DATA_PENDING_CASES,
                )
 _data_requires_csd_source = (DATA_ACTIVE_CASES,
                              DATA_TOTAL_RECOVERED_PER_1M,
@@ -191,6 +193,7 @@ _data_display_names_en = {DATA_TOTAL_CASES:"Total cases",
                           DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES:"Active Cases / 1M Habs\n(With 100 active cases or more)",
                           DATA_TOTAL_RECOVERED_PER_1M:"Recovered Cases / 1M Habs",
                           DATA_TOTAL_RECOVERED:"Recovered Cases",
+                          DATA_PENDING_CASES:"Pending Result Cases"
                          }
 
 _data_display_names_sp = {DATA_TOTAL_CASES:"Casos totales",
@@ -214,6 +217,7 @@ _data_display_names_sp = {DATA_TOTAL_CASES:"Casos totales",
                           DATA_ACTIVE_CASES_PER_1M_FROM_100_ACTIVE_CASES:"Casos activos/ 1M Habs\n(Con 100 casos activos o más)",
                           DATA_TOTAL_RECOVERED_PER_1M:"Casos recuperados / 1M Habs",
                           DATA_TOTAL_RECOVERED:"Casos recuperados",
+                          DATA_PENDING_CASES:"Casos con resultado pendiente"
                          }
 
 
@@ -246,6 +250,8 @@ COUNTRY_MX = "Mexico"
 _vip_countries = (COUNTRY_MX, COUNTRY_MX_X8)
 
 PLOT_AXIS_FONT_SIZE = 8
+
+PLOT_BAR_TICK_CLEANUP_SPLIT = "split"
 
 PLOT_STYLE_LINE = "line"
 PLOT_STYLE_MARKERS = "markers"
@@ -354,7 +360,7 @@ COVID19MX_CATALOG_TYPE_HDR_COLS = { COVID19MX_CATALOG_TYPE_SIMPLE     : ("CLAVE"
                                     COVID19MX_CATALOG_TYPE_MUNICIPIOS : ("CLAVE_MUNICIPIO","MUNICIPIO","CLAVE_ENTIDAD"),
                                     COVID19MX_CATALOG_TYPE_ENTIDADES  : ("CLAVE_ENTIDAD","ENTIDAD_FEDERATIVA","ABREVIATURA")}
 
-COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases"))
+COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases", "pending_cases"))
 COVID19MX_DIR_CATALOGS    = os.path.join(_my_path, "..", "covid19mx", "www", "abiertos", "catalogos")
 COVID19MX_CATALOG_ENTIDADES     = "catalog_entidades"
 COVID19MX_CATALOG_MUNICIPIOS    = "catalog_municipios"
@@ -441,7 +447,7 @@ COVID19MX_DIR_MAIN_REPORT_COLS = (COVID19MX_COL_ENTRY("FECHA_ACTUALIZACION",    
                                   COVID19MX_COL_ENTRY("FECHA_DEF",               "FECHA_DEF",             COVID19MX_COL_DATE),
                                   COVID19MX_COL_ENTRY("INTUBADO",                "INTUBADO",              COVID19MX_CATALOG_SI_NO),
                                   COVID19MX_COL_ENTRY("NEUMONIA",                "NEUMONIA",              COVID19MX_CATALOG_SI_NO),
-                                  COVID19MX_COL_ENTRY("EDAD",                    "EDAD",                  COVID19MX_CATALOG_SI_NO),
+                                  COVID19MX_COL_ENTRY("EDAD",                    "EDAD",                  None),
                                   COVID19MX_COL_ENTRY("NACIONALIDAD",            "NACIONALIDAD",          COVID19MX_CATALOG_SI_NO),
                                   COVID19MX_COL_ENTRY("EMBARAZO",                "EMBARAZO",              COVID19MX_CATALOG_SI_NO),
                                   COVID19MX_COL_ENTRY("HABLA_LENGUA_INDIG",      "HABLA_LENGUA_INDIG",    COVID19MX_CATALOG_SI_NO),
@@ -695,6 +701,15 @@ class Report:
             
         self.legend_location = LEGEND_LOCATION_BEST if not params._has_option(section, "legend_location") else params._get_option(section, "legend_location").strip() 
         assert self.legend_location in _known_legend_locations, "Invalid value for legend_location: %s"%(self.legend_location)
+        
+        self.plot_bar_tick_cleanup = None
+        if params._has_option(section, "plot_bar_tick_cleanup"):
+            self.plot_bar_tick_cleanup = [i.strip() for i in params._get_option(section, "plot_bar_tick_cleanup").split(",")]
+            if self.plot_bar_tick_cleanup[0] == PLOT_BAR_TICK_CLEANUP_SPLIT:
+                assert len(self.plot_bar_tick_cleanup) == 2, "plot_bar_tick_cleanup = %s must be len 2"%PLOT_BAR_TICK_CLEANUP_SPLIT
+                self.plot_bar_tick_cleanup[1] = int(self.plot_bar_tick_cleanup[1])
+            else:
+                raise Exception("Invalid plot_bar_tick_cleanup: %s"%(self.plot_bar_tick_cleanup[0], ))
         
         self.plot_style = PLOT_STYLE_LINE
         if params._has_option(section, "plot_style"):
@@ -1294,6 +1309,11 @@ class CoronaBaseData:
                 pending[state][entry.FECHA_SINTOMAS] += 1
                 if doing_municipes:
                     pending[municipe][entry.FECHA_SINTOMAS] += 1
+                    #if municipe.find("Zacapu") != -1:
+                    #    print("")
+                    #    print(entry)
+                    #    print("(A) %s, %s"%(_format_date(entry.FECHA_SINTOMAS), pending[municipe][entry.FECHA_SINTOMAS]))
+
             # Tested
             tested[COVID19MX_ALL_COUNTRY_TAG][entry.FECHA_SINTOMAS] += 1
             tested[state][entry.FECHA_SINTOMAS] += 1
@@ -1307,9 +1327,10 @@ class CoronaBaseData:
         last_total_deaths = {}
         last_total_positive = {}
         last_active_positive = {}
+        last_pending = {}
         last_recovered = {}
         
-        for d in [last_total_deaths, last_total_positive, last_active_positive, last_recovered]:
+        for d in [last_total_deaths, last_total_positive, last_active_positive, last_recovered, last_pending]:
             for c in all_countries:
                 d[c] = 0
         
@@ -1326,8 +1347,10 @@ class CoronaBaseData:
             self.data[country] = {}
             
             active_expiration_dates = {}
+            pending_expiration_dates = {}
             for d in all_dates:
                 active_expiration_dates[d] = 0
+                pending_expiration_dates[d] = 0
             
             #dbg = False if country not in ("Panindícuaro, Mich.", "Puruándiro, Mich.") else True
             
@@ -1367,34 +1390,37 @@ class CoronaBaseData:
                 
                 # Active cases
                 prev_val = last_active_positive[country]
-                #if dbg: 
-                #    log.debug("Active cases")
-                #    import pprint
-                #    log.debug("Pending exp dates:")
-                #    for dt, dy in active_expiration_dates.items():
-                #        if dt >= date and dy > 0:
-                #            log.debug(" %s -> %i days"%(_format_date(dt), dy))
-                #    log.debug("              prev_val: %s"%(repr(prev_val), ))
                 if date in positive[country]:
                     day_val = positive[country][date]
                     exp_date = _add_date_full_days(date, self.config_file.covid19mx_active_case_duration_days)
                     # if the date falls beyond the dates already-inserted then there's no need to register the expiration as that is after the report ends
                     if exp_date in active_expiration_dates:
                         active_expiration_dates[exp_date] += day_val 
-                    #if dbg: 
-                    #    log.debug("                       Setting %i days to expire on %s"%(day_val, _format_date(exp_date), ))
                 else:
                     day_val = 0
-                #if dbg: 
-                #    log.debug("              day_val: %s"%(repr(day_val), ))
-                #if dbg: 
-                #    log.debug("                       %i days expired today"%(active_expiration_dates[date], ))
                 entry_active_cases = prev_val + day_val - active_expiration_dates[date]
                 entry_new_active = day_val
                 last_active_positive[country] = entry_active_cases
-                #if dbg: 
-                #    log.debug("   entry_active_cases: %s"%(repr(entry_active_cases), ))
-                #    log.debug("     entry_new_active: %s"%(repr(entry_new_active), ))
+
+                # Pending cases
+                # Need to do the same as active, make them expire automatically. There's lots of pending cases which never got a result
+                prev_val = last_pending[country]
+                if date in pending[country]:
+                    day_val = pending[country][date]
+                    #if country.find("Zacapu") != -1 and day_val != 0:
+                    #    print("(B) Day val %s, %i"%(_format_date(date), day_val))
+                    
+                    exp_date = _add_date_full_days(date, self.config_file.covid19mx_active_case_duration_days)
+                    # if the date falls beyond the dates already-inserted then there's no need to register the expiration as that is after the report ends
+                    if exp_date in pending_expiration_dates:
+                        pending_expiration_dates[exp_date] += day_val 
+                else:
+                    day_val = 0
+                entry_pending_cases = prev_val + day_val - pending_expiration_dates[date]
+                entry_new_pending = day_val
+                last_pending[country] = entry_pending_cases
+                #if country.find("Zacapu") != -1:
+                #    print("(C) %s, %i"%(_format_date(d), entry_pending_cases))
                 
                 # Recovered cases
                 #prev_val = last_recovered[country]
@@ -1410,9 +1436,11 @@ class CoronaBaseData:
                 #CONTINUEHERE, active cases. Need to set an expiration date for active cases, or better said, create a dictionary of negative cases to add 
                 # into the mix int he future. Maybe make sure the date range includes all days in order to make stuff easier.
                 
-                #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases"))
+                #COVID19MX_CoronaDayEntry = collections.namedtuple("COVID19MX_CoronaDayEntry", ("total_deaths", "total_cases", "new_deaths", "new_cases", "active_cases", "pending_cases"))
         
-                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases, entry_active_cases)
+                e = COVID19MX_CoronaDayEntry(entry_total_deaths, entry_total_cases, entry_new_deaths, entry_new_cases, entry_active_cases, entry_pending_cases)
+                #if country.find("Zacapu") != -1:
+                #    print("(D) %s"%(e, ))
                 self.data[country][date] = e
                 
     
@@ -1427,137 +1455,168 @@ class CoronaBaseData:
         
         entries = []
         
-        log.info("Reading main report file from %s"%(filename,))
-        with codecs.open(filename, "r", "utf8", "ignore") as fh:
-            reader = csv.reader(fh)
-            # Read header
-            hdr_row = next(reader)
-            hdr_dict = {}
-            req_hdr_cols = [e.col_header for e in COVID19MX_DIR_MAIN_REPORT_COLS]
-            
-            for index, cell in enumerate(hdr_row):
-                if cell in req_hdr_cols:
-                    hdr_dict[cell] = index
-                else:
-                    log.warning("Uknown hdr entry at col %i under catalog %s: %s"%(index, cat_id, ffilename))
-            
-            # Verify all items were read
-            assert len(hdr_dict) == len(req_hdr_cols), "At catalog %s/%s, unable to get all header items %s from %s"%(cat_id, ffilename, repr(req_hdr_cols), repr(hdr_row),)
-            
-            date_first = True
-            
-            row_errors = 0
-            rnum = 1
-            try:
+        i = None
+        b, e = os.path.splitext(os.path.basename(filename))
+        while True:
+            processed_csv = "covid19mx.%s.processed%s%s"%(b, "" if i == None else ".%i"%(i),  e)
+            if not os.path.exists(processed_csv):
+                break
+            if i == None:
+                i = 2
+            else:
+                i += 1
+        
+        log.info("Writting processed CSV to %s"%(processed_csv,))
+        
+        with open(processed_csv, "w", newline="") as fho:
+            writer = csv.writer(fho)
+            hdr = [e.ID for e in COVID19MX_DIR_MAIN_REPORT_COLS]
+            writer.writerow(hdr)
+        
+            log.info("Reading main report file from %s"%(filename,))
+            with codecs.open(filename, "r", "utf8", "ignore") as fh:
+                reader = csv.reader(fh)
+                # Read header
+                hdr_row = next(reader)
+                hdr_dict = {}
+                req_hdr_cols = [e.col_header for e in COVID19MX_DIR_MAIN_REPORT_COLS]
                 
-                for row in reader:
-                    rnum += 1
-                    
-                    if rnum % 1000 == 0:
-                        sys.stdout.write(" At row %iK\r"%(rnum/1000, ))
-                        sys.stdout.flush()
-                    
-                    entry_values = []
+                for index, cell in enumerate(hdr_row):
+                    if cell in req_hdr_cols:
+                        hdr_dict[cell] = index
+                    else:
+                        log.warning("Uknown hdr entry at col %i under catalog %s: %s"%(index, cat_id, ffilename))
                 
-                    for known_col in COVID19MX_DIR_MAIN_REPORT_COLS:
-                        raw_val = row[hdr_dict[known_col.col_header]]
-                        try:
-                            if known_col.entry_type == None:
-                                val = raw_val
-                            elif known_col.entry_type == COVID19MX_COL_DATE:
-                                m = COVID19MX_MAIN_REPORT_DATE_REGEX.match(raw_val)
-                                if m == None:
-                                    log.warning("Invalid date at row %i, col %s: %s"%(rnum, known_col, raw_val))
-                                    val = None
-                                else:
-                                    g = m.groupdict()
-                                    y = int(g["year"])
-                                    m = int(g["month"])
-                                    d = int(g["day"])
-                                    if y == 9999 and m == 99 and d == 99:
+                # Verify all items were read
+                assert len(hdr_dict) == len(req_hdr_cols), "At catalog %s/%s, unable to get all header items %s from %s"%(cat_id, ffilename, repr(req_hdr_cols), repr(hdr_row),)
+                
+                date_first = True
+                
+                row_errors = 0
+                rnum = 1
+                try:
+                    
+                    for row in reader:
+                        rnum += 1
+                        
+                        if rnum % 1000 == 0:
+                            sys.stdout.write(" At row %iK\r"%(rnum/1000, ))
+                            sys.stdout.flush()
+                        
+                        entry_values = []
+                    
+                        for known_col in COVID19MX_DIR_MAIN_REPORT_COLS:
+                            raw_val = row[hdr_dict[known_col.col_header]]
+                            try:
+                                if known_col.entry_type == None:
+                                    val = raw_val
+                                elif known_col.entry_type == COVID19MX_COL_DATE:
+                                    m = COVID19MX_MAIN_REPORT_DATE_REGEX.match(raw_val)
+                                    if m == None:
+                                        log.warning("Invalid date at row %i, col %s: %s"%(rnum, known_col, raw_val))
                                         val = None
                                     else:
-                                        val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
-                            elif known_col.entry_type == COVID19MX_COL_STATE:
-                                try:
-                                    iraw_val = int(raw_val)
-                                except Exception as ex:
-                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
-                                if iraw_val in self.covid19mx_state_data:
-                                    val = self.covid19mx_state_data[iraw_val][COVID19MX_STATE_DATA_COL_NAME]
-                                else:
-                                    #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
-                                    # Check if the state is on the state catalog
-                                    val = catalogs[COVID19MX_CATALOG_ENTIDADES][raw_val][0]
-                                    #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile state key is %s"%(iraw_val,))
-                            elif known_col.entry_type == COVID19MX_COL_MPIO_RES:
-                                try:
-                                    iraw_val = int(raw_val)
-                                except Exception as ex:
-                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
-                                mpio_code = iraw_val
-                                # Get the state code. It should be from the residency state
-                                state_code = row[hdr_dict[COVID19MX_COL_MPIO_RES_STATE_COL]]
-                                try:
-                                    state_code = int(state_code)
-                                except Exception as ex:
-                                    raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(state_code, COVID19MX_COL_MPIO_RES_STATE_COL, rnum))
-                                
-                                key = "%i_%i"%(mpio_code, state_code)
-                                
-                                if key in self.covid19mx_municipes_data:
-                                    val = self.covid19mx_municipes_data[key][COVID19MX_MUNICIPES_DATA_COL_FULL_NAME]
-                                else:
-                                    log.warning("Invalid residency municipe code %s (mpio, state) at row %i."%(key, rnum))
-                                    val = None
-                                    #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
-                                    # Check if the state is on the state catalog
-                                    #val = catalogs[COVID19MX_CATALOG_MUNICIPIOS][entity_code][0]
-                                    #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile mpio key is %s"%(key,))
-                            elif known_col.entry_type in catalogs:
-                                catalog_type = catalog_types[known_col.entry_type]
-                                catalog = catalogs[known_col.entry_type]
-                                
-                                decoded_vals = catalog.get(raw_val, None)
-                                if decoded_vals == None:
-                                    val = "<%s>"%(raw_val)
-                                else:
-                                    if catalog_type == COVID19MX_CATALOG_TYPE_SIMPLE:
-                                        val = decoded_vals[0]
-                                    # These have been replaced to fetch data from the population sheets. If needed, the code below will need updates
-                                    #elif catalog_type == COVID19MX_CATALOG_TYPE_ENTIDADES:
-                                    #    val = decoded_vals[0]
-                                    #elif catalog_type == COVID19MX_CATALOG_TYPE_MUNICIPIOS:
-                                    #    mpio = decoded_vals[0]
-                                    #    entity_code = decoded_vals[1]
-                                    #    # Index 1 of entitys, is the entity abbreviation
-                                    #    #entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
-                                    #    entity_abbrev = self.covid19mx_state_data[entity_code][COVID19MX_STATE_DATA_COL_ABBREV] if entity_code in self.covid19mx_state_data else catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
-                                    #    val = "%s, %s"%(mpio, entity_abbrev)
+                                        g = m.groupdict()
+                                        y = int(g["year"])
+                                        m = int(g["month"])
+                                        d = int(g["day"])
+                                        if y == 9999 and m == 99 and d == 99:
+                                            val = None
+                                        elif y < 2020:
+                                            log.warning("Skipping too-early date: %s"%(raw_val,))
+                                            val = None
+                                        else:
+                                            val = time.mktime(time.strptime(raw_val, "%Y-%m-%d"))
+                                elif known_col.entry_type == COVID19MX_COL_STATE:
+                                    try:
+                                        iraw_val = int(raw_val)
+                                    except Exception as ex:
+                                        raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
+                                    if iraw_val in self.covid19mx_state_data:
+                                        val = self.covid19mx_state_data[iraw_val][COVID19MX_STATE_DATA_COL_NAME]
                                     else:
-                                        raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
+                                        #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
+                                        # Check if the state is on the state catalog
+                                        val = catalogs[COVID19MX_CATALOG_ENTIDADES][raw_val][0]
+                                        #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile state key is %s"%(iraw_val,))
+                                elif known_col.entry_type == COVID19MX_COL_MPIO_RES:
+                                    try:
+                                        iraw_val = int(raw_val)
+                                    except Exception as ex:
+                                        raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(raw_val, known_col.ID, rnum))
+                                    mpio_code = iraw_val
+                                    # Get the state code. It should be from the residency state
+                                    state_code = row[hdr_dict[COVID19MX_COL_MPIO_RES_STATE_COL]]
+                                    try:
+                                        state_code = int(state_code)
+                                    except Exception as ex:
+                                        raise Exception("Cannot convert %s to integer as expected for column %s on row %i"%(state_code, COVID19MX_COL_MPIO_RES_STATE_COL, rnum))
+                                    
+                                    key = "%i_%i"%(mpio_code, state_code)
+                                    
+                                    if key in self.covid19mx_municipes_data:
+                                        val = self.covid19mx_municipes_data[key][COVID19MX_MUNICIPES_DATA_COL_FULL_NAME]
+                                    else:
+                                        if mpio_code not in (99, 999):
+                                            log.warning("Invalid residency municipe code %s (mpio, state) at row %i."%(key, rnum))
+                                        val = None
+                                        #log.warning("Unknown state %s at row %i from state data sheet, falling back to entities catalog"%(repr(raw_val), rnum))
+                                        # Check if the state is on the state catalog
+                                        #val = catalogs[COVID19MX_CATALOG_MUNICIPIOS][entity_code][0]
+                                        #raise Exception("Not sure how to read data from the municipes catalog. This is only the fallback path so it is probably not rerquired. Faile mpio key is %s"%(key,))
+                                elif known_col.entry_type in catalogs:
+                                    catalog_type = catalog_types[known_col.entry_type]
+                                    catalog = catalogs[known_col.entry_type]
+                                    
+                                    decoded_vals = catalog.get(raw_val, None)
+                                    if decoded_vals == None:
+                                        val = "<%s>"%(raw_val)
+                                    else:
+                                        if catalog_type == COVID19MX_CATALOG_TYPE_SIMPLE:
+                                            val = decoded_vals[0]
+                                        # These have been replaced to fetch data from the population sheets. If needed, the code below will need updates
+                                        #elif catalog_type == COVID19MX_CATALOG_TYPE_ENTIDADES:
+                                        #    val = decoded_vals[0]
+                                        #elif catalog_type == COVID19MX_CATALOG_TYPE_MUNICIPIOS:
+                                        #    mpio = decoded_vals[0]
+                                        #    entity_code = decoded_vals[1]
+                                        #    # Index 1 of entitys, is the entity abbreviation
+                                        #    #entity_abbrev = catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                        #    entity_abbrev = self.covid19mx_state_data[entity_code][COVID19MX_STATE_DATA_COL_ABBREV] if entity_code in self.covid19mx_state_data else catalogs[COVID19MX_CATALOG_ENTIDADES][entity_code][1]
+                                        #    val = "%s, %s"%(mpio, entity_abbrev)
+                                        else:
+                                            raise Exception("Internal error: Unknown catalog type: %s"%(catalog_type))
+                                
+                                entry_values.append(val)
+                            except Exception as ex:
+                                log.error("Failed to read COVID19MX main data sheet %s at row %i, column %s with value %s: %s"
+                                          ""%(filename, rnum, known_col.ID, raw_val, ex))
+                                log.debug(traceback.format_exc())
+                                row_errors += 1
+                                if row_errors > COVID19MX_MAIN_REPORT_MAX_TOLERATED_ROW_ERRORS:
+                                    raise Exception("Failed to ready COVID19MX main data sheet, exceeded number of errors")
+                                
+                                entry_values = None
+                                break
+                        
+                        if entry_values != None:
+                            e = COVID19MX_MAIN_REPORT_ENTRY(*entry_values) 
+                            entries.append(e)
                             
-                            entry_values.append(val)
-                        except Exception as ex:
-                            log.error("Failed to read COVID19MX main data sheet %s at row %i, column %s with value %s: %s"
-                                      ""%(filename, rnum, known_col.ID, raw_val, ex))
-                            log.debug(traceback.format_exc())
-                            row_errors += 1
-                            if row_errors > COVID19MX_MAIN_REPORT_MAX_TOLERATED_ROW_ERRORS:
-                                raise Exception("Failed to ready COVID19MX main data sheet, exceeded number of errors")
-                            
-                            entry_values = None
-                            break
-                    
-                    if entry_values != None: 
-                        entries.append(COVID19MX_MAIN_REPORT_ENTRY(*entry_values))         
+                            orow = []
+                            for he, ee in zip(hdr, e):
+                                if he.find("FECHA") != -1:
+                                    orow.append(_format_date(ee) if ee != None else "")
+                                else:
+                                    orow.append(ee)       
+                            writer.writerow(orow)
+                
+                except Exception as ex:
+                        log.error("Failed to read COVID19MX main data sheet %s at row %i: %s"%(filename, rnum, ex))
+                        log.info("Last read entry: %s"%("None" if len(entries) == 0 else repr(entries[-1])))
+                        log.debug(traceback.format_exc())
+                        raise Exception("Failed to ready COVID19MX main data sheet")
             
-            except Exception as ex:
-                    log.error("Failed to read COVID19MX main data sheet %s at row %i: %s"%(filename, rnum, ex))
-                    log.info("Last read entry: %s"%("None" if len(entries) == 0 else repr(entries[-1])))
-                    log.debug(traceback.format_exc())
-                    raise Exception("Failed to ready COVID19MX main data sheet")
-           
         log.info("Read %i MX COVID19 entries"%(len(entries)))
              
         return entries            
@@ -1856,8 +1915,10 @@ class CoronaBaseData:
                 self.date_limit_min = None
                 self.date_limit_top = date
                 report.filename_postfix = ".frame_%03i"%(index,)
-                props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
-                date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
+                #props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
+                #date_legend = dict(x = 0.78, y = 0.17, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
+                props = dict(boxstyle='round', facecolor='#8080C0', alpha=0.7)
+                date_legend = dict(x = 0.80, y = 0.91, s = _format_date(date), fontsize=7, color="#000000", bbox=props)
                 filename = self._export(report, plot_args = dict(extra_labels = [date_legend]))
                 if filename != None:
                     filenames.append(filename)
@@ -1891,8 +1952,8 @@ class CoronaBaseData:
                     os.chdir(cwd)
             return filenames
         elif covid19mx_iter_report_date != None:
-            props = dict(boxstyle='round', facecolor='#808080', alpha=0.5)
-            date_legend = dict(x = 0.78, y = 0.17, s = _format_date(covid19mx_iter_report_date), fontsize=7, color="#000000", bbox=props)
+            props = dict(boxstyle='round', facecolor='#8080C0', alpha=0.7)
+            date_legend = dict(x = 0.80, y = 0.91, s = _format_date(covid19mx_iter_report_date), fontsize=7, color="#000000", bbox=props)
             return self._export(report, plot_args = dict(extra_labels = [date_legend]))
         else:
             self._country_label_order = None
@@ -1989,6 +2050,10 @@ class CoronaBaseData:
                                             data = ac / (self.population[country] / 1000000)
                                     elif dt == DATA_TOTAL_RECOVERED:
                                         data = self.data[country][actual_date].total_recovered 
+                                    elif dt == DATA_PENDING_CASES:
+                                        data = self.data[country][actual_date].pending_cases 
+                                        #if country.find("Zacapu") != -1:
+                                        #    print("(E) %s, %i"%(_format_date(actual_date), data))
                                     elif dt == DATA_TOTAL_RECOVERED_PER_1M:
                                         data = self.data[country][actual_date].total_recovered / (self.population[country] / 1000000)
                                     elif dt == DATA_NEW_DEATHS_PER_ACTIVE_CASES:
@@ -2155,7 +2220,7 @@ class CoronaBaseData:
         
     def write_plot(self, report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None, extra_labels = None):
         if report.plot_style in _plot_styles_last_entry_data:
-            return self.write_last_entry_plot(report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = None, axis2_report_data = None)
+            return self.write_last_entry_plot(report, date_domain, report_data, selected_countries, x_range = None, y_range = None, axis2_y_range = axis2_y_range, axis2_report_data = axis2_report_data)
         
         if report.filename_postfix == None:
             fname = report.filename + ".png"
@@ -2389,43 +2454,72 @@ class CoronaBaseData:
         log.info("Creating last entry plot %s" % (fname, ))
         fig, ax1 = plt.subplots()
         
-        if axis2_report_data != None:
-            raise Exception("No second-axis support as of now")
-            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+        axis2_enabled = axis2_report_data != None
         
         # Prepare X,Y data
         x_indexes = []
         x_ticks = []
         y = []
+        y2 = []
         incremental_index = 0
         for index, country in enumerate(selected_countries):
             last_y = None
+            last_y2 = None
             for date_index, adj_date in enumerate(date_domain):
                 data = report_data[date_index][country]
-                if data == None or \
-                    (data == 0 and not report.data_plot_zeros): continue
+                if data != None:
+                    last_y = data
                 
-                last_y = data
+                if axis2_enabled:
+                    data2 = axis2_report_data[date_index][country]
+                    if data2 != None:
+                        last_y2 = data2
+                        #if country.find("Zacapu") != -1:
+                        #    print("(F), %i"%(last_y2,))
+                
+            if last_y == None and (not axis2_enabled or last_y2 == None):
+                continue
             
             if last_y == None:
-                log.warning("No final data for country %s, skipping"%(country))
+                log.warning("No final data for country %s, forcing to 0 since the second series has a value"%(country))
+                last_y = 0
+            if last_y2 == None:
+                log.warning("No final data for country %s, forcing to 0 since the first series has a value"%(country))
+                last_y2 = 0
+                
+            if last_y == 0 and (not axis2_enabled or last_y2 == 0) and not report.data_plot_zeros:
+                # Ignore countries which have only zeros
                 continue
             
             x_indexes.append(incremental_index)
             x_ticks.append(country)
             y.append(last_y)
+            if axis2_enabled:
+                y2.append(last_y2)
             incremental_index += 1
             #print(country, last_y)
             
+        if report.plot_bar_tick_cleanup != None:
+            if report.plot_bar_tick_cleanup[0] == PLOT_BAR_TICK_CLEANUP_SPLIT:
+                for i in range(0, len(x_ticks)):
+                    x_ticks[i] = "\n".join(_string_line_split(x_ticks[i], report.plot_bar_tick_cleanup[1]))
+            else:
+                raise Exception("Internal error")
+#        print(x_ticks, y, y2)
+            
         if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
-            plt.bar(x_indexes, y, zorder=3)
+            plot0 = plt.bar(x_indexes, y, zorder=3)
+            if axis2_enabled:
+                plot1 = plt.bar(x_indexes, y2, zorder=3, bottom = y)
             plt.xticks(x_indexes, x_ticks)
             ax1.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 2, colors=PLOT_EXTERNAL_FONT_COLOR, which = 'both')
             ax1.tick_params(labelsize=PLOT_AXIS_FONT_SIZE - 3, axis="x", rotation = 35)
             ax1.grid(True, color=PLOT_GRID_COLOR, axis="y", zorder=-1)
             ax1.set_yscale(report.plot_y_scale)
         elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
-            plt.barh(x_indexes, y, zorder=3, align='center')
+            plot0 = plt.barh(x_indexes, y, zorder=3, align='center')
+            if axis2_enabled:
+                plot1 = plt.barh(x_indexes, y2, zorder=3, align='center', left = y)
             ax1.invert_yaxis()  # labels read top-to-bottom
             plt.yticks(x_indexes, x_ticks)
             #ax1.set_yticks(x_indexes)
@@ -2456,12 +2550,16 @@ class CoronaBaseData:
 
                 
         if report.data_type in _data_display_names:
-            if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
-                ax1.set_ylabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
-            elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
-                ax1.set_xlabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+            if not axis2_enabled:
+                if report.plot_style == PLOT_STYLE_LAST_ENTRY_BARS:
+                    ax1.set_ylabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+                elif report.plot_style == PLOT_STYLE_LAST_ENTRY_HBARS:
+                    ax1.set_xlabel(_data_display_names.get(report.data_type), fontsize=PLOT_AXIS_FONT_SIZE, color=PLOT_EXTERNAL_FONT_COLOR)
+                else:
+                    raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
             else:
-                raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
+                plt.legend((plot0[0], plot1[0]), (_data_display_names.get(report.data_type), _data_display_names.get(report.axis2_data_type)), loc = report.legend_location, fontsize=PLOT_AXIS_FONT_SIZE - 2)
+
         else:
             log.warning("No label defined for data type %s"%(report.data_type, ))
     
@@ -2470,12 +2568,12 @@ class CoronaBaseData:
         else:
             ax1.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
             log.debug("Setting Y axis multiplier")
-        if axis2_report_data != None:
-            if axis2_y_range != None:
-                ax2.set_ylim(axis2_y_range)
-            else:
-                ax2.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.axis2_plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
-                log.debug("Setting Y2 axis multiplier")
+#        if axis2_report_data != None:
+#            if axis2_y_range != None:
+#                ax2.set_ylim(axis2_y_range)
+#            else:
+#                ax2.set_ymargin(PLOT_DATA_MARGIN_LINEAR if report.axis2_plot_y_scale == PLOT_SCALE_LINEAR else PLOT_DATA_MARGIN_LOG)
+#                log.debug("Setting Y2 axis multiplier")
         
         
         fig.set_facecolor(PLOT_EXTERNAL_BG_COLOR)
@@ -2489,12 +2587,12 @@ class CoronaBaseData:
             ax1.xaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         else:
             raise Exception("Unsupported plot style: %s"%(report.plot_style, ))
-        if axis2_report_data != None:
-            ax2.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
+#        if axis2_report_data != None:
+ #           ax2.yaxis.set_major_formatter(ticker.FuncFormatter(self.format_axis_ticks))
         
-        if report.sync_both_y_axis:
-            ax2.set_yticks(ax1.get_yticks())
-            ax2.set_ylim(ax1.get_ylim())
+#        if report.sync_both_y_axis:
+#            ax2.set_yticks(ax1.get_yticks())
+#            ax2.set_ylim(ax1.get_ylim())
         
         plt.gcf().text(0.01, 0.01, "%s:\n%s"%(_data_source, _get_data_source_name(self.config_file.data_source)), fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
         plt.gcf().text(0.01, 0.98, _github_url, fontsize=5, color=PLOT_EXTERNAL_FONT_COLOR)
@@ -2792,6 +2890,28 @@ class CoronaBaseData:
         domain.sort()
         
         return domain, country_timelines
+    
+def _string_line_split(strn, max_line_width):
+    words = strn.split(" ")
+    lines = []
+    curr_line = ""
+    while len(words) > 0:
+        # Try the next word
+        if len(curr_line) + 1 + len(words[0]) <= max_line_width:
+            curr_line += ((" " if len(curr_line) > 0 else "")  + words.pop(0))
+        else:
+            if len(curr_line) > 0:
+                lines.append(curr_line)
+                curr_line = ""
+            else:
+                # need to split the word
+                w = words[0]
+                lines.append(w[:max_line_width])
+                words[0] = w[max_line_width:]
+    if curr_line != "":
+        lines.append(curr_line)
+    return lines    
+        
     
 def _add_date_full_days(d, days):
     # Add 25 hours for 1 day (to account for daylight time changes)
